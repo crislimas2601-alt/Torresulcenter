@@ -412,7 +412,7 @@ export const TorresulProposalCalculator: React.FC = () => {
                 1. Imóvel & Recursos
               </h3>
               <p className="text-xs text-slate-500">
-                Valor do contrato, desconto concedido, financiamento e FGTS
+                Valor do contrato, adimplência, financiamento e FGTS
               </p>
             </div>
 
@@ -438,27 +438,27 @@ export const TorresulProposalCalculator: React.FC = () => {
               </span>
             </div>
 
-            {/* Desconto Concedido no Imóvel (Box com Segmented Switch Sem / Com Desconto Concedido) */}
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
+            {/* Adimplência (Desconto Concedido / Taxa) */}
+            <div className="p-4 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-800">
-                    Desconto Concedido no Imóvel
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    Adimplência
                   </span>
                 </div>
 
                 {/* Pill Segmented Switch */}
-                <div className="flex items-center bg-slate-200 p-1 rounded-lg">
+                <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
                   <button
                     type="button"
                     onClick={() => handleUpdateAdimplencia(false, 0)}
                     className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
                       !proposal.temAdimplencia
-                        ? 'bg-white text-slate-800 shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
-                    Sem Desconto
+                    Sem Adimplência
                   </button>
 
                   <button
@@ -466,43 +466,149 @@ export const TorresulProposalCalculator: React.FC = () => {
                     onClick={() => handleUpdateAdimplencia(true, proposal.valorAdimplencia || 500)}
                     className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
                       proposal.temAdimplencia
-                        ? 'bg-emerald-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'bg-red-600 text-white shadow-xs'
+                        : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
-                    Com Desconto
+                    Com Adimplência
                   </button>
                 </div>
               </div>
 
               {proposal.temAdimplencia && (
-                <div className="space-y-2.5">
+                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Valor do Desconto Concedido (R$)
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Valor da Adimplência (R$)
                     </label>
                     <CurrencyInput
-                      id="valor_desconto_input"
+                      id="valor_adimplencia_input"
                       value={proposal.valorAdimplencia || 0}
                       onChange={(val) => handleUpdateAdimplencia(true, val)}
                       placeholder="0,00"
-                      className="border-emerald-300 bg-emerald-50/40 text-emerald-950 font-bold"
+                      className="border-red-200 bg-red-50/30 text-slate-900 font-bold focus:border-red-500 focus:ring-red-500/20"
                     />
-                    <span className="text-[11px] text-slate-500 mt-1 block">
+                    <span className="text-[10px] text-slate-500 mt-1 block">
                       Este valor é computado no fluxo da negociação e considerado na base de 80% do financiamento.
                     </span>
                   </div>
 
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Juros da Adimplência */}
+                    <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
+                      <div className="flex items-center justify-between mb-3">
+                        <label className="text-xs font-bold text-slate-700 flex items-center gap-1 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={proposal.temJurosAdimplencia || false}
+                            onChange={(e) => handleUpdate({ temJurosAdimplencia: e.target.checked })}
+                            className="rounded border-slate-300 text-red-600 focus:ring-red-600"
+                          />
+                          Adicionar Juros
+                        </label>
+                      </div>
+                      
+                      {proposal.temJurosAdimplencia && (
+                        <div className="space-y-3">
+                          <div className="flex gap-2">
+                            <div className="flex-1">
+                              <label className="block text-[10px] font-semibold text-slate-500 mb-1 uppercase">Taxa (%)</label>
+                              <div className="relative">
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  min="0"
+                                  value={proposal.percentualJurosAdimplencia || ''}
+                                  onChange={(e) => handleUpdate({ percentualJurosAdimplencia: parseFloat(e.target.value) || 0 })}
+                                  className="w-full px-3 py-2 text-sm font-semibold rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+                                  placeholder="Ex: 1.5"
+                                />
+                                <span className="absolute right-3 top-2 text-slate-400 text-sm font-semibold">%</span>
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <label className="block text-[10px] font-semibold text-slate-500 mb-1 uppercase">Onde aplicar?</label>
+                              <select
+                                value={proposal.tipoJurosAdimplencia || 'total'}
+                                onChange={(e) => handleUpdate({ tipoJurosAdimplencia: e.target.value as any })}
+                                className="w-full px-2 py-2 text-xs font-semibold rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+                              >
+                                <option value="total">Diluir no Total</option>
+                                <option value="parcelamentos">Nos Parcelamentos</option>
+                              </select>
+                            </div>
+                          </div>
+                          {proposal.tipoJurosAdimplencia === 'parcelamentos' && (
+                            <div className="text-[10px] text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                              Adicione os juros manualmente no campo "Juros Adimplência (R$)" dentro de cada parcelamento.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Imposto da Adimplência */}
+                    <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
+                      <div className="flex items-center justify-between mb-3">
+                        <label className="text-xs font-bold text-slate-700 flex items-center gap-1 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={proposal.temImpostoAdimplencia || false}
+                            onChange={(e) => handleUpdate({ temImpostoAdimplencia: e.target.checked })}
+                            className="rounded border-slate-300 text-red-600 focus:ring-red-600"
+                          />
+                          Adicionar Imposto (Contrato)
+                        </label>
+                      </div>
+
+                      {proposal.temImpostoAdimplencia && (
+                        <div className="space-y-3">
+                          <div className="flex gap-2">
+                            <div className="w-1/3">
+                              <label className="block text-[10px] font-semibold text-slate-500 mb-1 uppercase">Taxa (%)</label>
+                              <div className="relative">
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  min="0"
+                                  value={proposal.percentualImpostoAdimplencia || ''}
+                                  onChange={(e) => handleUpdate({ percentualImpostoAdimplencia: parseFloat(e.target.value) || 0, valorImpostoAdimplencia: 0 })}
+                                  className="w-full px-2 py-2 text-sm font-semibold rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+                                  placeholder="%"
+                                />
+                              </div>
+                            </div>
+                            <div className="w-2/3">
+                              <label className="block text-[10px] font-semibold text-slate-500 mb-1 uppercase">Ou Valor (R$)</label>
+                              <CurrencyInput
+                                id="valor_imposto_input"
+                                value={proposal.valorImpostoAdimplencia || 0}
+                                onChange={(val) => handleUpdate({ valorImpostoAdimplencia: val, percentualImpostoAdimplencia: 0 })}
+                                placeholder="0,00"
+                                className="border-slate-300"
+                              />
+                            </div>
+                          </div>
+                          <span className="text-[10px] text-slate-500 block">
+                            Este imposto é somado ao valor de contrato do imóvel.
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   {proposal.valorImovel > 0 && (proposal.valorAdimplencia || 0) > 0 && (
-                    <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-300 flex items-center justify-between gap-2 flex-wrap">
-                      <div className="text-xs text-emerald-950">
-                        <span className="font-semibold block">Base de Financiamento c/ Desconto:</span>
-                        <strong className="text-sm font-bold text-emerald-900">
-                          {formatBRL(proposal.valorImovel + proposal.valorAdimplencia)}
-                        </strong>
-                        <span className="text-[11px] text-emerald-800 ml-1.5">
-                          (80% = {formatBRL(round2((proposal.valorImovel + proposal.valorAdimplencia) * 0.8))})
-                        </span>
+                    <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-between gap-3 flex-wrap">
+                      <div className="text-xs text-slate-800">
+                        <span className="font-semibold block text-slate-500 uppercase tracking-wider text-[10px]">Base de Financiamento c/ Adimplência</span>
+                        <div className="flex items-baseline gap-2 mt-0.5">
+                          <strong className="text-sm font-extrabold text-slate-900 font-heading">
+                            {formatBRL(proposal.valorImovel + proposal.valorAdimplencia)}
+                          </strong>
+                          <span className="text-[11px] text-slate-500 font-medium">
+                            (80% = {formatBRL(round2((proposal.valorImovel + proposal.valorAdimplencia) * 0.8))})
+                          </span>
+                        </div>
                       </div>
 
                       <button
@@ -512,10 +618,10 @@ export const TorresulProposalCalculator: React.FC = () => {
                             financiamento: round2((proposal.valorImovel + proposal.valorAdimplencia) * 0.8),
                           })
                         }
-                        className="px-2.5 py-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-md shadow-2xs transition cursor-pointer"
-                        title="Ajustar financiamento para exatamente 80% do valor da venda com o desconto concedido"
+                        className="px-3 py-1.5 text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white rounded-lg shadow-sm transition cursor-pointer"
+                        title="Ajustar financiamento para exatamente 80% do valor da venda com a adimplência"
                       >
-                        Aplicar 80% com Desconto
+                        Aplicar 80%
                       </button>
                     </div>
                   )}

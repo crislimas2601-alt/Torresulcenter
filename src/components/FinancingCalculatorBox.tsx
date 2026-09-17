@@ -144,12 +144,12 @@ export const FinancingCalculatorBox: React.FC<FinancingCalculatorBoxProps> = ({
         </div>
       </div>
 
-      {/* Base de Cálculo: Com Desconto Concedido vs Só Imóvel */}
+      {/* Base de Cálculo: Com Adimplência vs Só Imóvel */}
       {hasAdimplencia && (
-        <div className="flex items-center justify-between gap-2 p-1.5 bg-emerald-50/80 border border-emerald-200 rounded-md text-[11px] text-emerald-950 flex-wrap">
+        <div className="flex items-center justify-between gap-2 p-1.5 bg-slate-50 border border-slate-200 rounded-md text-[11px] text-slate-800 flex-wrap">
           <div className="flex items-center gap-1">
-            <span className="font-semibold">Base p/ cálculo (%):</span>
-            <strong className="text-emerald-900 font-bold">{formatBRL(valorBase)}</strong>
+            <span className="font-semibold text-slate-500">Base p/ cálculo (%):</span>
+            <strong className="text-slate-900 font-bold">{formatBRL(valorBase)}</strong>
           </div>
           <div className="inline-flex items-center gap-1 text-[10px]">
             <button
@@ -163,14 +163,14 @@ export const FinancingCalculatorBox: React.FC<FinancingCalculatorBoxProps> = ({
                   onChangeFinanciamento(target);
                 }
               }}
-              title="Calcular sobre o valor da venda com desconto concedido incluso"
+              title="Calcular sobre o valor da venda com adimplência inclusa"
               className={`px-2 py-0.5 rounded font-bold transition cursor-pointer ${
                 useAdimplenciaBase
-                  ? 'bg-emerald-600 text-white shadow-2xs'
-                  : 'text-emerald-800 hover:bg-emerald-100'
+                  ? 'bg-red-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:bg-slate-200'
               }`}
             >
-              Com Desconto (+{formatBRL(valorAdimplencia)})
+              Com Adimplência (+{formatBRL(valorAdimplencia)})
             </button>
             <button
               type="button"
@@ -183,7 +183,7 @@ export const FinancingCalculatorBox: React.FC<FinancingCalculatorBoxProps> = ({
                   onChangeFinanciamento(target);
                 }
               }}
-              title="Calcular apenas sobre o valor do imóvel sem desconto"
+              title="Calcular apenas sobre o valor do imóvel sem adimplência"
               className={`px-1.5 py-0.5 rounded font-medium transition cursor-pointer ${
                 !useAdimplenciaBase
                   ? 'bg-slate-700 text-white shadow-2xs'

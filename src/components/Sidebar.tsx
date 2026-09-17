@@ -127,15 +127,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 bg-white border-r border-slate-200 shadow-xl md:shadow-none flex flex-col transition-all duration-200 ease-in-out md:static md:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-50 bg-zinc-900 border-r border-zinc-800 shadow-xl md:shadow-none flex flex-col transition-all duration-200 ease-in-out md:static md:translate-x-0 ${
           isOpenMobile ? 'translate-x-0 w-64' : '-translate-x-full'
         } ${isCollapsed ? 'md:w-18' : 'md:w-60'}`}
       >
         {/* Brand Header */}
-        <div className="p-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-900 text-white">
+        <div className="p-3.5 border-b border-zinc-800 flex items-center justify-between bg-zinc-950 text-white">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-lg bg-white border border-slate-700 p-0.5 flex items-center justify-center shrink-0">
-              <TorreSulLogo size={30} className="w-7 h-7" />
+            <div className="w-9 h-9 rounded-lg bg-red-600 border border-red-500 p-0.5 flex items-center justify-center shrink-0">
+              <TorreSulLogo size={30} className="w-7 h-7 text-white" />
             </div>
             {!isCollapsed && (
               <div className="min-w-0">
@@ -143,11 +143,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <span className="font-extrabold text-xs tracking-tight text-white font-heading truncate">
                     TORRE SUL
                   </span>
-                  <span className="text-[9px] px-1 py-0.2 rounded bg-red-600 text-white font-bold uppercase tracking-wider">
+                  <span className="text-[9px] px-1 py-0.2 rounded bg-zinc-800 text-zinc-300 border border-zinc-700 font-bold uppercase tracking-wider">
                     Tools
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-400 truncate">
+                <p className="text-[10px] text-zinc-400 truncate">
                   Imobiliária & Back Office
                 </p>
               </div>
@@ -158,7 +158,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               type="button"
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="hidden md:flex p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
+              className="hidden md:flex p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition cursor-pointer"
               title={isCollapsed ? "Expandir barra lateral" : "Recolher barra lateral"}
             >
               <Layers className="w-4 h-4" />
@@ -166,7 +166,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               type="button"
               onClick={onCloseMobile}
-              className="md:hidden text-slate-400 hover:text-white p-1 rounded-lg cursor-pointer"
+              className="md:hidden text-zinc-400 hover:text-white p-1 rounded-lg cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -174,7 +174,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Top Google Cloud Auth & User Status (Directly visible at top) */}
-        <div ref={settingsRef} className="p-2.5 border-b border-slate-200/80 bg-slate-50/80 relative">
+        <div ref={settingsRef} className="p-2.5 border-b border-zinc-800 bg-zinc-900 relative">
           
           {/* Settings & Auth Popup Modal */}
           {isSettingsOpen && (
@@ -301,20 +301,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <img
                     src={user.photoURL}
                     alt={user.displayName || 'Corretor'}
-                    className="w-7 h-7 rounded-full object-cover ring-1 ring-emerald-500 shrink-0"
+                    className="w-7 h-7 rounded-full object-cover ring-1 ring-red-500 shrink-0"
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-zinc-800 text-white flex items-center justify-center font-bold text-[10px] shrink-0 border border-zinc-700">
                     {user.displayName ? user.displayName.charAt(0).toUpperCase() : 'TS'}
                   </div>
                 )}
                 {!isCollapsed && (
                   <div className="truncate">
-                    <span className="font-bold text-slate-900 block truncate text-xs">
+                    <span className="font-bold text-zinc-100 block truncate text-xs">
                       {user.displayName?.split(' ')[0] || 'Corretor'}
                     </span>
-                    <span className="text-[9px] text-emerald-600 font-semibold block truncate flex items-center gap-1">
+                    <span className="text-[9px] text-emerald-400 font-semibold block truncate flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                       Nuvem Conectada
                     </span>
@@ -325,7 +325,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+                className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition cursor-pointer"
                 title="Configurações e Conta"
               >
                 <Settings className="w-4 h-4" />
@@ -338,7 +338,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   type="button"
                   onClick={handleSignIn}
                   disabled={isAuthLoading}
-                  className="w-full flex items-center justify-between p-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 transition cursor-pointer shadow-2xs group"
+                  className="w-full flex items-center justify-between p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 transition cursor-pointer shadow-2xs group"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-white">
@@ -361,21 +361,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         />
                       </svg>
                     </div>
-                    <span className="text-xs font-bold text-slate-800 truncate">
+                    <span className="text-xs font-bold text-zinc-200 truncate">
                       {isAuthLoading ? 'Entrando...' : 'Entrar com Google'}
                     </span>
                   </div>
-                  <Settings className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-700" />
+                  <Settings className="w-3.5 h-3.5 text-zinc-500 group-hover:text-zinc-300" />
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={handleSignIn}
                   disabled={isAuthLoading}
-                  className="w-full flex items-center justify-center p-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 transition cursor-pointer shadow-2xs"
+                  className="w-full flex items-center justify-center p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 transition cursor-pointer shadow-2xs"
                   title="Entrar com Google"
                 >
-                  <Settings className="w-4 h-4 text-slate-700" />
+                  <Settings className="w-4 h-4 text-zinc-400" />
                 </button>
               )}
             </div>
@@ -387,7 +387,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div>
             {!isCollapsed && (
               <div className="px-2 mb-2 flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
                   Ferramentas
                 </span>
               </div>
@@ -410,15 +410,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     title={tool.title}
                     className={`w-full text-left p-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-2.5 group relative border ${
                       isActive
-                        ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
-                        : 'bg-white hover:bg-slate-50 text-slate-700 border-transparent hover:border-slate-200'
+                        ? 'bg-zinc-800 border-zinc-700 shadow-sm'
+                        : 'bg-transparent hover:bg-zinc-800/50 border-transparent hover:border-zinc-800'
                     }`}
                   >
                     <div
                       className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
                         isActive
                           ? 'bg-red-600 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                          : 'bg-zinc-800 text-zinc-400 group-hover:text-zinc-200'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -427,11 +427,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {!isCollapsed && (
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1 mb-0.5">
-                          <span className={`text-xs font-bold truncate ${isActive ? 'text-white' : 'text-slate-900'}`}>
+                          <span className={`text-xs font-bold truncate ${isActive ? 'text-white' : 'text-zinc-300 group-hover:text-zinc-100'}`}>
                             {tool.title}
                           </span>
                         </div>
-                        <p className={`text-[10px] truncate ${isActive ? 'text-slate-300' : 'text-slate-500'}`}>
+                        <p className={`text-[10px] truncate ${isActive ? 'text-zinc-400' : 'text-zinc-500'}`}>
                           {tool.subtitle}
                         </p>
                       </div>
@@ -441,8 +441,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <span
                         className={`text-[9px] px-1.5 py-0.2 rounded-full font-semibold border shrink-0 ${
                           isActive 
-                            ? 'bg-white/15 text-white border-white/20' 
-                            : 'bg-slate-100 text-slate-600 border-slate-200'
+                            ? 'bg-zinc-900 text-zinc-300 border-zinc-700' 
+                            : 'bg-zinc-800 text-zinc-400 border-zinc-700'
                         }`}
                       >
                         {tool.badge}
@@ -456,7 +456,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Bottom spacer / Minimal status */}
-        <div className="p-3 border-t border-slate-100 text-center text-[10px] text-slate-400">
+        <div className="p-3 border-t border-zinc-800 text-center text-[10px] text-zinc-500">
           {!isCollapsed && <span>Torresul Imobiliária © {new Date().getFullYear()}</span>}
         </div>
       </aside>

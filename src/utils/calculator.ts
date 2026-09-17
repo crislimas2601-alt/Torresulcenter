@@ -70,9 +70,33 @@ export function calculateProposalTotals(proposal: ProposalData): ProposalTotals 
   const subsidio = round2(proposal.subsidio || 0);
   const adimplencia = proposal.temAdimplencia ? round2(proposal.valorAdimplencia || 0) : 0;
 
+  // Juros Adimplência
+  let jurosAdimplencia = 0;
+  if (proposal.temAdimplencia && proposal.temJurosAdimplencia) {
+    const percJuros = proposal.percentualJurosAdimplencia || 0;
+    jurosAdimplencia = round2(adimplencia * (percJuros / 100));
+  }
+
+  // Imposto Adimplência
+  let impostoAdimplencia = 0;
+  if (proposal.temAdimplencia && proposal.temImpostoAdimplencia) {
+    if ((proposal.valorImpostoAdimplencia || 0) > 0) {
+      impostoAdimplencia = round2(proposal.valorImpostoAdimplencia || 0);
+    } else {
+      const percImposto = proposal.percentualImpostoAdimplencia || 0;
+      impostoAdimplencia = round2(adimplencia * (percImposto / 100));
+    }
+  }
+
   // Recalculate each parcelamento item
   const parcelamentosRecalculados: ParcelamentoItem[] = (proposal.parcelamentos || []).map((p) => {
     const calc = calculateParcelamentoItem(p);
+    let extraJurosAdimplencia = 0;
+    
+    // Se o juros da adimplência for diluído nos parcelamentos, dividimos proporcionalmente ou apenas adicionamos?
+    // Para simplificar, se o usuário escolher 'parcelamentos', ele deve preencher 'jurosAdimplenciaDiluido' manualmente na parcela.
+    // Mas se quisermos automatizar:
+    
     return {
       ...p,
       valorParcelaCalculada: calc.valorParcelaCalculada,
@@ -95,14 +119,18 @@ export function calculateProposalTotals(proposal: ProposalData): ProposalTotals 
   const totalEntradaSemJuros = round2(ato + totalParcelamentosSemJuros + totalReforcos);
   const totalEntradaComJuros = round2(ato + totalParcelamentosComJuros + totalReforcos);
 
+  // Se o juros da adimplência for no total:
+  const jurosAdimplenciaNoTotal = proposal.tipoJurosAdimplencia === 'total' ? jurosAdimplencia : 0;
+
   // Total Nominal sem juros adicionais
   const totalNominal = round2(totalEntradaSemJuros + financiamento + fgts + subsidio);
 
-  // Total da Negociação (com juros gerados e adimplência)
-  const totalNegociacao = round2(totalEntradaComJuros + financiamento + fgts + subsidio + adimplencia);
+  // Total da Negociação (com juros gerados, adimplência, imposto e juros da adimplência se for no total)
+  const totalNegociacao = round2(totalEntradaComJuros + financiamento + fgts + subsidio + adimplencia + impostoAdimplencia + jurosAdimplenciaNoTotal);
 
   // Diferença em relação ao valor do imóvel (positivo = falta valor; negativo = excedeu)
-  const diferencaImovel = round2(valorImovel - totalNominal);
+  // Como o imposto da adimplência vai "no valor do contrato", o valorImovel deve teoricamente ser acrescido desse imposto na comparação
+  const diferencaImovel = round2((valorImovel + impostoAdimplencia) - (totalNominal + adimplencia));
 
   return {
     totalEntradaSemJuros,

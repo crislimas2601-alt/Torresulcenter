@@ -10,18 +10,42 @@ export function generateContractText(proposal: ProposalData): string {
   const totals = calculateProposalTotals(proposal);
   const lines: string[] = [];
 
+  const adimplencia = proposal.temAdimplencia ? round2(proposal.valorAdimplencia || 0) : 0;
+  let impostoAdimplencia = 0;
+  if (proposal.temAdimplencia && proposal.temImpostoAdimplencia) {
+    if ((proposal.valorImpostoAdimplencia || 0) > 0) {
+      impostoAdimplencia = round2(proposal.valorImpostoAdimplencia || 0);
+    } else {
+      const percImposto = proposal.percentualImpostoAdimplencia || 0;
+      impostoAdimplencia = round2(adimplencia * (percImposto / 100));
+    }
+  }
+
+  let jurosAdimplencia = 0;
+  if (proposal.temAdimplencia && proposal.temJurosAdimplencia) {
+    const percJuros = proposal.percentualJurosAdimplencia || 0;
+    jurosAdimplencia = round2(adimplencia * (percJuros / 100));
+  }
+
   // 1. Valor do imóvel para contrato
-  lines.push(`Valor do imóvel para contrato: ${formatBRL(proposal.valorImovel)}`);
+  if (impostoAdimplencia > 0) {
+    lines.push(`Valor do imóvel para contrato: ${formatBRL(proposal.valorImovel + impostoAdimplencia)} (Inclui imposto de adimplência de ${formatBRL(impostoAdimplencia)})`);
+  } else {
+    lines.push(`Valor do imóvel para contrato: ${formatBRL(proposal.valorImovel)}`);
+  }
   lines.push('');
 
-  // 2. Desconto Concedido (se houver)
+  // 2. Adimplência (se houver)
   if (proposal.temAdimplencia && proposal.valorAdimplencia > 0) {
-    lines.push(`Desconto Concedido: ${formatBRL(proposal.valorAdimplencia)}`);
+    lines.push(`Adimplência: ${formatBRL(proposal.valorAdimplencia)}`);
+    if (proposal.temJurosAdimplencia && proposal.tipoJurosAdimplencia === 'total' && jurosAdimplencia > 0) {
+      lines.push(`Juros da Adimplência (Diluído no Total): ${formatBRL(jurosAdimplencia)} (${proposal.percentualJurosAdimplencia}%)`);
+    }
     lines.push('');
   }
 
   // 3. Valor total da negociação
-  lines.push(`Valor total da negociação (com juros e desconto concedido): ${formatBRL(totals.totalNegociacao)}`);
+  lines.push(`Valor total da negociação (com juros e adimplência): ${formatBRL(totals.totalNegociacao)}`);
   lines.push('');
 
   // 4. Valor total da entrada

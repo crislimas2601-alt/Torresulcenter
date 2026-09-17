@@ -400,10 +400,14 @@ export interface ProposalData {
   numeroUnidade?: string;
   createdAt?: string;
   valorImovel: number;
-  temDesconto?: boolean;
-  valorDesconto?: number;
   temAdimplencia: boolean;
   valorAdimplencia: number;
+  temJurosAdimplencia?: boolean;
+  percentualJurosAdimplencia?: number;
+  tipoJurosAdimplencia?: 'parcelamentos' | 'total';
+  temImpostoAdimplencia?: boolean;
+  percentualImpostoAdimplencia?: number;
+  valorImpostoAdimplencia?: number;
   financiamento: number;
   bancoFinanciamento?: string;
   correspondente?: string;

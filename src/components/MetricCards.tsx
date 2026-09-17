@@ -56,22 +56,22 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
         {/* 1. A Receber nos Próximos Meses (Interativo: Abre detalhamento de meses) */}
         <div 
           id="card-metric-pending"
-          className={`bg-white rounded-xl p-4 sm:p-5 border transition-all relative ${
+          className={`bg-white rounded-xl p-4 sm:p-5 border transition-all relative group ${
             showPendingBreakdown 
-              ? 'border-red-400 ring-2 ring-red-100 shadow-sm' 
-              : 'border-slate-200 shadow-xs hover:border-slate-300'
+              ? 'border-red-600 ring-1 ring-red-600/20 shadow-sm' 
+              : 'border-zinc-200 shadow-xs hover:border-red-600'
           }`}
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider group-hover:text-red-600 transition-colors">
               A Receber (Previsão)
             </span>
-            <div className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center border border-red-100">
+            <div className="w-8 h-8 rounded-lg bg-white text-zinc-400 flex items-center justify-center border border-zinc-200 group-hover:border-red-600 group-hover:text-red-600 transition-colors">
               <CalendarClock className="w-4 h-4" />
             </div>
           </div>
 
-          <div className="text-2xl font-extrabold text-slate-900 tracking-tight font-heading">
+          <div className="text-2xl font-extrabold text-zinc-900 tracking-tight font-heading">
             {formatCurrency(stats.totalPendingFuture)}
           </div>
 
@@ -95,19 +95,19 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
         {/* 2. Média Mensal Prevista (Interativo: 3, 6, ou 12 meses) */}
         <div 
           id="card-metric-avg"
-          className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-xs hover:border-slate-300 transition-all flex flex-col justify-between"
+          className="bg-white rounded-xl p-4 sm:p-5 border border-zinc-200 shadow-xs hover:border-red-600 transition-all flex flex-col justify-between group"
         >
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+              <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider group-hover:text-red-600 transition-colors">
                 Média Mensal
               </span>
-              <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center border border-slate-200/60">
+              <div className="w-8 h-8 rounded-lg bg-white text-zinc-400 flex items-center justify-center border border-zinc-200 group-hover:border-red-600 group-hover:text-red-600 transition-colors">
                 <TrendingUp className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="text-2xl font-extrabold text-slate-900 tracking-tight font-heading">
+            <div className="text-2xl font-extrabold text-zinc-900 tracking-tight font-heading">
               {formatCurrency(dynamicMonthlyAverage)}
             </div>
           </div>
@@ -168,17 +168,17 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
         <div 
           id="card-metric-received"
           onClick={onFilterReceived}
-          className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-xs hover:border-slate-300 transition-all cursor-pointer group"
+          className="bg-white rounded-xl p-4 sm:p-5 border border-zinc-200 shadow-xs hover:border-red-600 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider group-hover:text-red-600 transition-colors">
               Total Já Recebido
             </span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+            <div className="w-8 h-8 rounded-lg bg-white text-zinc-400 flex items-center justify-center border border-zinc-200 group-hover:border-red-600 group-hover:text-red-600 transition-colors">
               <Wallet className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-extrabold text-slate-900 tracking-tight font-heading">
+          <div className="text-2xl font-extrabold text-zinc-900 tracking-tight font-heading">
             {formatCurrency(stats.totalReceivedAllTime)}
           </div>
           <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
@@ -193,17 +193,17 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
         {/* 4. Bônus & Premiações */}
         <div 
           id="card-metric-bonuses"
-          className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-xs hover:border-slate-300 transition-all"
+          className="bg-white rounded-xl p-4 sm:p-5 border border-zinc-200 shadow-xs hover:border-red-600 transition-all group"
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider group-hover:text-red-600 transition-colors">
               Bônus & Prêmios
             </span>
-            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
+            <div className="w-8 h-8 rounded-lg bg-white text-zinc-400 flex items-center justify-center border border-zinc-200 group-hover:border-red-600 group-hover:text-red-600 transition-colors">
               <Award className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-extrabold text-slate-900 tracking-tight font-heading">
+          <div className="text-2xl font-extrabold text-zinc-900 tracking-tight font-heading">
             {formatCurrency(stats.totalBonusesAllTime)}
           </div>
           <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
@@ -215,17 +215,17 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
         {/* 5. VGV Intermediado */}
         <div 
           id="card-metric-vgv"
-          className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-xs hover:border-slate-300 transition-all"
+          className="bg-white rounded-xl p-4 sm:p-5 border border-zinc-200 shadow-xs hover:border-red-600 transition-all group"
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider group-hover:text-red-600 transition-colors">
               VGV Intermediado
             </span>
-            <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center border border-slate-200/60">
+            <div className="w-8 h-8 rounded-lg bg-white text-zinc-400 flex items-center justify-center border border-zinc-200 group-hover:border-red-600 group-hover:text-red-600 transition-colors">
               <Building2 className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-extrabold text-slate-900 tracking-tight font-heading">
+          <div className="text-2xl font-extrabold text-zinc-900 tracking-tight font-heading">
             {formatCurrency(stats.totalVGV)}
           </div>
           <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
