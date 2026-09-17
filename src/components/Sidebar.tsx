@@ -181,7 +181,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Top Google Cloud Auth & User Status (Directly visible at top) */}
-        <div ref={settingsRef} className="p-2.5 border-b border-red-900/30 bg-black/20 backdrop-blur-sm relative">
+        <div ref={settingsRef} className="p-2.5 border-b border-red-900/30 bg-black/20 backdrop-blur-sm relative z-50">
           
           {/* Settings & Auth Popup Modal */}
           {isSettingsOpen && (
