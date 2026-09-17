@@ -412,7 +412,7 @@ export const TorresulProposalCalculator: React.FC = () => {
                 1. Imóvel & Recursos
               </h3>
               <p className="text-xs text-slate-500">
-                Valor do contrato, adimplência, financiamento e FGTS
+                Valor do contrato, desconto avaliado, financiamento e FGTS
               </p>
             </div>
 
@@ -438,12 +438,12 @@ export const TorresulProposalCalculator: React.FC = () => {
               </span>
             </div>
 
-            {/* Adimplência (Desconto Concedido / Taxa) */}
+            {/* Desconto Avaliado (Adimplência) */}
             <div className="p-4 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    Adimplência
+                    Desconto Avaliado
                   </span>
                 </div>
 
@@ -458,7 +458,7 @@ export const TorresulProposalCalculator: React.FC = () => {
                         : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
-                    Sem Adimplência
+                    Sem Desconto Avaliado
                   </button>
 
                   <button
@@ -470,7 +470,7 @@ export const TorresulProposalCalculator: React.FC = () => {
                         : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
-                    Com Adimplência
+                    Com Desconto Avaliado
                   </button>
                 </div>
               </div>
@@ -479,7 +479,7 @@ export const TorresulProposalCalculator: React.FC = () => {
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Valor da Adimplência (R$)
+                      Valor do Desconto Avaliado (R$)
                     </label>
                     <CurrencyInput
                       id="valor_adimplencia_input"
@@ -494,7 +494,7 @@ export const TorresulProposalCalculator: React.FC = () => {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Juros da Adimplência */}
+                    {/* Juros do Desconto Avaliado */}
                     <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
                       <div className="flex items-center justify-between mb-3">
                         <label className="text-xs font-bold text-slate-700 flex items-center gap-1 cursor-pointer">
@@ -540,14 +540,14 @@ export const TorresulProposalCalculator: React.FC = () => {
                           </div>
                           {proposal.tipoJurosAdimplencia === 'parcelamentos' && (
                             <div className="text-[10px] text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
-                              Adicione os juros manualmente no campo "Juros Adimplência (R$)" dentro de cada parcelamento.
+                              Adicione os juros manualmente no campo "Juros (R$)" dentro de cada parcelamento.
                             </div>
                           )}
                         </div>
                       )}
                     </div>
 
-                    {/* Imposto da Adimplência */}
+                    {/* Imposto do Desconto Avaliado */}
                     <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
                       <div className="flex items-center justify-between mb-3">
                         <label className="text-xs font-bold text-slate-700 flex items-center gap-1 cursor-pointer">
@@ -600,7 +600,7 @@ export const TorresulProposalCalculator: React.FC = () => {
                   {proposal.valorImovel > 0 && (proposal.valorAdimplencia || 0) > 0 && (
                     <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-between gap-3 flex-wrap">
                       <div className="text-xs text-slate-800">
-                        <span className="font-semibold block text-slate-500 uppercase tracking-wider text-[10px]">Base de Financiamento c/ Adimplência</span>
+                        <span className="font-semibold block text-slate-500 uppercase tracking-wider text-[10px]">Base de Financiamento c/ Desconto Avaliado</span>
                         <div className="flex items-baseline gap-2 mt-0.5">
                           <strong className="text-sm font-extrabold text-slate-900 font-heading">
                             {formatBRL(proposal.valorImovel + proposal.valorAdimplencia)}
@@ -619,7 +619,7 @@ export const TorresulProposalCalculator: React.FC = () => {
                           })
                         }
                         className="px-3 py-1.5 text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white rounded-lg shadow-sm transition cursor-pointer"
-                        title="Ajustar financiamento para exatamente 80% do valor da venda com a adimplência"
+                        title="Ajustar financiamento para exatamente 80% do valor da venda com o desconto avaliado"
                       >
                         Aplicar 80%
                       </button>

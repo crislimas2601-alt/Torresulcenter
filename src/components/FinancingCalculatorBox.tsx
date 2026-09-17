@@ -144,7 +144,7 @@ export const FinancingCalculatorBox: React.FC<FinancingCalculatorBoxProps> = ({
         </div>
       </div>
 
-      {/* Base de Cálculo: Com Adimplência vs Só Imóvel */}
+      {/* Base de Cálculo: Com Desconto Avaliado vs Só Imóvel */}
       {hasAdimplencia && (
         <div className="flex items-center justify-between gap-2 p-1.5 bg-slate-50 border border-slate-200 rounded-md text-[11px] text-slate-800 flex-wrap">
           <div className="flex items-center gap-1">
@@ -163,14 +163,14 @@ export const FinancingCalculatorBox: React.FC<FinancingCalculatorBoxProps> = ({
                   onChangeFinanciamento(target);
                 }
               }}
-              title="Calcular sobre o valor da venda com adimplência inclusa"
+              title="Calcular sobre o valor da venda com desconto avaliado incluso"
               className={`px-2 py-0.5 rounded font-bold transition cursor-pointer ${
                 useAdimplenciaBase
                   ? 'bg-red-600 text-white shadow-2xs'
                   : 'text-slate-600 hover:bg-slate-200'
               }`}
             >
-              Com Adimplência (+{formatBRL(valorAdimplencia)})
+              Com Desc. Avaliado (+{formatBRL(valorAdimplencia)})
             </button>
             <button
               type="button"
@@ -183,7 +183,7 @@ export const FinancingCalculatorBox: React.FC<FinancingCalculatorBoxProps> = ({
                   onChangeFinanciamento(target);
                 }
               }}
-              title="Calcular apenas sobre o valor do imóvel sem adimplência"
+              title="Calcular apenas sobre o valor do imóvel sem desconto avaliado"
               className={`px-1.5 py-0.5 rounded font-medium transition cursor-pointer ${
                 !useAdimplenciaBase
                   ? 'bg-slate-700 text-white shadow-2xs'
@@ -263,7 +263,7 @@ export const FinancingCalculatorBox: React.FC<FinancingCalculatorBoxProps> = ({
           >
             <span>80%</span>
             <span className="block text-[9px] font-semibold opacity-95 truncate text-amber-700">
-              {hasAdimplencia ? 'c/ Adimplência' : 'Padrão CEF'}
+              {hasAdimplencia ? 'c/ Desc. Avaliado' : 'Padrão CEF'}
             </span>
           </button>
         ) : (

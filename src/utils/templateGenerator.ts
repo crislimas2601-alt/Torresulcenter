@@ -29,23 +29,23 @@ export function generateContractText(proposal: ProposalData): string {
 
   // 1. Valor do imóvel para contrato
   if (impostoAdimplencia > 0) {
-    lines.push(`Valor do imóvel para contrato: ${formatBRL(proposal.valorImovel + impostoAdimplencia)} (Inclui imposto de adimplência de ${formatBRL(impostoAdimplencia)})`);
+    lines.push(`Valor do imóvel para contrato: ${formatBRL(proposal.valorImovel + impostoAdimplencia)} (Inclui imposto de desconto avaliado de ${formatBRL(impostoAdimplencia)})`);
   } else {
     lines.push(`Valor do imóvel para contrato: ${formatBRL(proposal.valorImovel)}`);
   }
   lines.push('');
 
-  // 2. Adimplência (se houver)
+  // 2. Desconto Avaliado (se houver)
   if (proposal.temAdimplencia && proposal.valorAdimplencia > 0) {
-    lines.push(`Adimplência: ${formatBRL(proposal.valorAdimplencia)}`);
+    lines.push(`Desconto Avaliado: ${formatBRL(proposal.valorAdimplencia)}`);
     if (proposal.temJurosAdimplencia && proposal.tipoJurosAdimplencia === 'total' && jurosAdimplencia > 0) {
-      lines.push(`Juros da Adimplência (Diluído no Total): ${formatBRL(jurosAdimplencia)} (${proposal.percentualJurosAdimplencia}%)`);
+      lines.push(`Juros do Desconto Avaliado (Diluído no Total): ${formatBRL(jurosAdimplencia)} (${proposal.percentualJurosAdimplencia}%)`);
     }
     lines.push('');
   }
 
   // 3. Valor total da negociação
-  lines.push(`Valor total da negociação (com juros e adimplência): ${formatBRL(totals.totalNegociacao)}`);
+  lines.push(`Valor total da negociação (com juros e desconto avaliado): ${formatBRL(totals.totalNegociacao)}`);
   lines.push('');
 
   // 4. Valor total da entrada
@@ -74,7 +74,7 @@ export function generateContractText(proposal: ProposalData): string {
 
       let parcelaLine = `${parcelasStr} Parcelas de ${formatBRL(recalculated.valorParcelaCalculada)} primeiro vencimento para ${vcto}`;
       if (p.temJurosDiluidos) {
-        const adimp = p.jurosAdimplenciaDiluido ? `adimplência ${formatBRL(p.jurosAdimplenciaDiluido)}` : '';
+        const adimp = p.jurosAdimplenciaDiluido ? `desc. aval. ${formatBRL(p.jurosAdimplenciaDiluido)}` : '';
         const ref = p.jurosReforcosDiluido ? `reforços ${formatBRL(p.jurosReforcosDiluido)}` : '';
         const details = [adimp, ref].filter(Boolean).join(' e ');
         if (details) {

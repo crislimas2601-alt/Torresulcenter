@@ -93,13 +93,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const tools = [
     {
-      id: 'comissoes' as AppToolMode,
-      title: 'Comissões & Vendas',
-      subtitle: 'Contratos, VGV & Fluxo',
-      icon: Wallet,
-      badge: dealsCount > 0 ? `${dealsCount}` : undefined,
-    },
-    {
       id: 'amortizacao' as AppToolMode,
       title: 'Simulador Imobiliário',
       subtitle: 'Amortização, Aluguel & Investidor',
@@ -112,6 +105,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       subtitle: 'Cálculo & Copiar p/ Sistema',
       icon: FileText,
       badge: undefined,
+    },
+    {
+      id: 'comissoes' as AppToolMode,
+      title: 'Comissões & Vendas',
+      subtitle: 'Contratos, VGV & Fluxo',
+      icon: Wallet,
+      badge: dealsCount > 0 ? `${dealsCount}` : undefined,
     },
   ];
 
@@ -134,8 +134,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Brand Header */}
         <div className="p-3.5 border-b border-zinc-800 flex items-center justify-between bg-zinc-950 text-white">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-lg bg-red-600 border border-red-500 p-0.5 flex items-center justify-center shrink-0">
-              <TorreSulLogo size={30} className="w-7 h-7 text-white" />
+            <div className="w-9 h-9 rounded-lg bg-zinc-950 p-0.5 flex items-center justify-center shrink-0">
+              <TorreSulLogo size={30} className="w-7 h-7 text-red-600" />
             </div>
             {!isCollapsed && (
               <div className="min-w-0">
@@ -311,10 +311,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 )}
                 {!isCollapsed && (
                   <div className="truncate">
-                    <span className="font-bold text-zinc-100 block truncate text-xs">
+                    <span className="font-bold text-slate-900 block truncate text-xs">
                       {user.displayName?.split(' ')[0] || 'Corretor'}
                     </span>
-                    <span className="text-[9px] text-emerald-400 font-semibold block truncate flex items-center gap-1">
+                    <span className="text-[9px] text-emerald-600 font-semibold block truncate flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                       Nuvem Conectada
                     </span>
@@ -325,7 +325,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition cursor-pointer"
                 title="Configurações e Conta"
               >
                 <Settings className="w-4 h-4" />
