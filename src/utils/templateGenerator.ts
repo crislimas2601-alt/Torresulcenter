@@ -14,14 +14,14 @@ export function generateContractText(proposal: ProposalData): string {
   lines.push(`Valor do imóvel para contrato: ${formatBRL(proposal.valorImovel)}`);
   lines.push('');
 
-  // 2. Adimplência (se houver)
+  // 2. Desconto Concedido (se houver)
   if (proposal.temAdimplencia && proposal.valorAdimplencia > 0) {
-    lines.push(`Adimplência: ${formatBRL(proposal.valorAdimplencia)}`);
+    lines.push(`Desconto Concedido: ${formatBRL(proposal.valorAdimplencia)}`);
     lines.push('');
   }
 
   // 3. Valor total da negociação
-  lines.push(`Valor total da negociação (com juros e adimplência): ${formatBRL(totals.totalNegociacao)}`);
+  lines.push(`Valor total da negociação (com juros e desconto concedido): ${formatBRL(totals.totalNegociacao)}`);
   lines.push('');
 
   // 4. Valor total da entrada
@@ -48,12 +48,6 @@ export function generateContractText(proposal: ProposalData): string {
       lines.push(`${title}: Valor total sem juros ${formatBRL(p.totalSemJuros)}`);
       lines.push(`Valor total com juros: ${formatBRL(recalculated.valorTotalComJuros)} Juros de ${jurosFormatted}%`);
 
-      const jurosGerados = round2(recalculated.valorTotalComJuros - p.totalSemJuros);
-      if (jurosGerados > 0.009) {
-        const tipoLabel = p.tipoCalculo === 'price' ? 'Tabela Price' : 'Juros Simples';
-        lines.push(`Juros gerados: ${formatBRL(jurosGerados)} Tipo de juros: ${tipoLabel}`);
-      }
-
       let parcelaLine = `${parcelasStr} Parcelas de ${formatBRL(recalculated.valorParcelaCalculada)} primeiro vencimento para ${vcto}`;
       if (p.temJurosDiluidos) {
         const adimp = p.jurosAdimplenciaDiluido ? `adimplência ${formatBRL(p.jurosAdimplenciaDiluido)}` : '';
@@ -68,12 +62,13 @@ export function generateContractText(proposal: ProposalData): string {
     });
   }
 
-  // 7. Reforços
-  if (proposal.reforcos && proposal.reforcos.length > 0) {
+  // 7. Reforços (parcelas anuais - só exibe se houver reforço com valor > 0)
+  const validReforcos = (proposal.reforcos || []).filter((r) => (r.valor || 0) > 0);
+  if (validReforcos.length > 0 && totals.totalReforcos > 0) {
     lines.push(`Reforços (parcelas anuais): ${formatBRL(totals.totalReforcos)}`);
     lines.push(`Valor nominal: ${formatBRL(totals.totalReforcos)}`);
     lines.push(`Valor com juros: ${formatBRL(totals.totalReforcos)}`);
-    proposal.reforcos.forEach((r, idx) => {
+    validReforcos.forEach((r, idx) => {
       const rTitle = r.title?.trim() || `Reforço ${idx + 1}`;
       const vencimento =
         r.tipoVencimento === 'texto' && r.textoVencimento

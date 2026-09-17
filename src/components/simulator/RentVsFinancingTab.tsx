@@ -13,9 +13,11 @@ import {
   AlertTriangle,
   HelpCircle,
   Copy,
-  Check
+  Check,
+  Sparkles
 } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
+import { calculateRentVsBuy } from '../../utils/rentVsBuyCalculations';
 import { 
   ResponsiveContainer, 
   LineChart, 
@@ -39,6 +41,19 @@ export const RentVsFinancingTab: React.FC = () => {
   const [rentInflationAnnual, setRentInflationAnnual] = useState<number>(4.5); // % a.a. IPCA
 
   const [copied, setCopied] = useState(false);
+
+  // Roleta calculation
+  const wheelResult = useMemo(() => calculateRentVsBuy({
+    monthlyRent: initialRent,
+    rentAnnualInflation: rentInflationAnnual,
+    condoAndTaxesRent: 0,
+    propertyPrice: propertyValue,
+    downPayment,
+    loanTermYears: termYears,
+    annualInterestRate: financingRateAnnual,
+    propertyAnnualAppreciation: propertyAppreciationAnnual,
+    timeHorizonYears: Math.min(15, termYears),
+  }), [initialRent, rentInflationAnnual, propertyValue, downPayment, termYears, financingRateAnnual, propertyAppreciationAnnual]);
 
   // Calculations
   const comparison = useMemo(() => {
@@ -175,14 +190,16 @@ ${comparison.isPropertyWinner
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleCopySummary}
-          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-2 self-start md:self-auto shadow-xs"
-        >
-          {copied ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
-          <span>{copied ? 'Copiado para o Clipboard!' : 'Copiar Resumo'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleCopySummary}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-2 self-start md:self-auto shadow-xs"
+          >
+            {copied ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+            <span>{copied ? 'Copiado!' : 'Copiar'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Input Parameters Form */}

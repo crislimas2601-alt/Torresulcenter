@@ -87,6 +87,8 @@ export interface LoanInput {
   system: 'SAC' | 'PRICE';
   monthlyAdminFee: number;
   insuranceRateMonthly: number;
+  clientAge?: number;
+  grossIncome?: number;
 }
 
 export interface ExtraAmortizationInput {
@@ -383,6 +385,10 @@ export interface ReforcoItem {
 export interface AvalistaData {
   temAvalista: boolean;
   nome: string;
+  rg?: string;
+  cpf?: string;
+  endereco?: string;
+  estadoCivil?: string;
   email: string;
   telefone: string;
   profissao: string;
@@ -394,6 +400,8 @@ export interface ProposalData {
   numeroUnidade?: string;
   createdAt?: string;
   valorImovel: number;
+  temDesconto?: boolean;
+  valorDesconto?: number;
   temAdimplencia: boolean;
   valorAdimplencia: number;
   financiamento: number;

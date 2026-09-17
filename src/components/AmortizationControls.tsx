@@ -5,7 +5,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { ExtraAmortizationInput, LoanInput, SimulationResult } from '../types';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, parseBRLInput, formatBRLNumber } from '../utils/formatters';
 import { calculateInstantElimination } from '../utils/financialCalculations';
 
 interface AmortizationControlsProps {
@@ -26,21 +26,21 @@ export const AmortizationControls: React.FC<AmortizationControlsProps> = ({
   onChange,
 }) => {
   // Input local strings to allow smooth typing without cursor jumps
-  const [oneTimeStr, setOneTimeStr] = useState(String(extra.oneTimeAmount || ''));
-  const [monthlyStr, setMonthlyStr] = useState(String(extra.recurringMonthlyAmount || ''));
-  const [fgtsStr, setFgtsStr] = useState(String(extra.recurringBiAnnualFGTS || ''));
+  const [oneTimeStr, setOneTimeStr] = useState(extra.oneTimeAmount ? formatBRLNumber(extra.oneTimeAmount) : '');
+  const [monthlyStr, setMonthlyStr] = useState(extra.recurringMonthlyAmount ? formatBRLNumber(extra.recurringMonthlyAmount) : '');
+  const [fgtsStr, setFgtsStr] = useState(extra.recurringBiAnnualFGTS ? formatBRLNumber(extra.recurringBiAnnualFGTS) : '');
 
   // Keep strings synced when extra props change from presets/modals
   useEffect(() => {
-    setOneTimeStr(extra.oneTimeAmount ? String(extra.oneTimeAmount) : '');
+    setOneTimeStr(extra.oneTimeAmount ? formatBRLNumber(extra.oneTimeAmount) : '');
   }, [extra.oneTimeAmount]);
 
   useEffect(() => {
-    setMonthlyStr(extra.recurringMonthlyAmount ? String(extra.recurringMonthlyAmount) : '');
+    setMonthlyStr(extra.recurringMonthlyAmount ? formatBRLNumber(extra.recurringMonthlyAmount) : '');
   }, [extra.recurringMonthlyAmount]);
 
   useEffect(() => {
-    setFgtsStr(extra.recurringBiAnnualFGTS ? String(extra.recurringBiAnnualFGTS) : '');
+    setFgtsStr(extra.recurringBiAnnualFGTS ? formatBRLNumber(extra.recurringBiAnnualFGTS) : '');
   }, [extra.recurringBiAnnualFGTS]);
 
   // Specific one-time instant calculation
@@ -51,33 +51,45 @@ export const AmortizationControls: React.FC<AmortizationControlsProps> = ({
   const isReduceTerm = extra.goalType === 'REDUCE_TERM';
 
   const handleOneTimeInput = (valStr: string) => {
-    const cleanDigits = valStr.replace(/\D/g, '');
-    setOneTimeStr(cleanDigits);
-    const num = Number(cleanDigits) || 0;
+    setOneTimeStr(valStr);
+    const num = parseBRLInput(valStr);
     onChange({
       ...extra,
       oneTimeAmount: Math.max(0, num),
     });
   };
 
+  const handleOneTimeBlur = () => {
+    const num = parseBRLInput(oneTimeStr);
+    setOneTimeStr(num ? formatBRLNumber(num) : '');
+  };
+
   const handleMonthlyInput = (valStr: string) => {
-    const cleanDigits = valStr.replace(/\D/g, '');
-    setMonthlyStr(cleanDigits);
-    const num = Number(cleanDigits) || 0;
+    setMonthlyStr(valStr);
+    const num = parseBRLInput(valStr);
     onChange({
       ...extra,
       recurringMonthlyAmount: Math.max(0, num),
     });
   };
 
+  const handleMonthlyBlur = () => {
+    const num = parseBRLInput(monthlyStr);
+    setMonthlyStr(num ? formatBRLNumber(num) : '');
+  };
+
   const handleFGTSInput = (valStr: string) => {
-    const cleanDigits = valStr.replace(/\D/g, '');
-    setFgtsStr(cleanDigits);
-    const num = Number(cleanDigits) || 0;
+    setFgtsStr(valStr);
+    const num = parseBRLInput(valStr);
     onChange({
       ...extra,
       recurringBiAnnualFGTS: Math.max(0, num),
     });
+  };
+
+  const handleFGTSBlur = () => {
+    const num = parseBRLInput(fgtsStr);
+    setFgtsStr(num ? formatBRLNumber(num) : '');
   };
 
   const adjustOneTime = (delta: number) => {
@@ -270,7 +282,8 @@ export const AmortizationControls: React.FC<AmortizationControlsProps> = ({
                   id="one-time-amort-input"
                   type="text"
                   inputMode="numeric"
-                  value={oneTimeStr ? Number(oneTimeStr).toLocaleString('pt-BR') : ''}
+                  value={oneTimeStr}
+                  onBlur={handleOneTimeBlur}
                   onChange={(e) => handleOneTimeInput(e.target.value)}
                   className="w-full pl-8 pr-2 py-1.5 bg-white border-y border-zinc-200 text-zinc-900 font-semibold text-sm focus:ring-1 focus:ring-zinc-900 outline-none transition text-center tabular-nums"
                   placeholder="0"
@@ -358,7 +371,8 @@ export const AmortizationControls: React.FC<AmortizationControlsProps> = ({
                   id="recurring-monthly-input"
                   type="text"
                   inputMode="numeric"
-                  value={monthlyStr ? Number(monthlyStr).toLocaleString('pt-BR') : ''}
+                  value={monthlyStr}
+                  onBlur={handleMonthlyBlur}
                   onChange={(e) => handleMonthlyInput(e.target.value)}
                   className="w-full pl-8 pr-2 py-1.5 bg-white border-y border-zinc-200 text-zinc-900 font-semibold text-sm focus:ring-1 focus:ring-zinc-900 outline-none transition text-center tabular-nums"
                   placeholder="0"
@@ -446,7 +460,8 @@ export const AmortizationControls: React.FC<AmortizationControlsProps> = ({
                   id="fgts-input"
                   type="text"
                   inputMode="numeric"
-                  value={fgtsStr ? Number(fgtsStr).toLocaleString('pt-BR') : ''}
+                  value={fgtsStr}
+                  onBlur={handleFGTSBlur}
                   onChange={(e) => handleFGTSInput(e.target.value)}
                   className="w-full pl-8 pr-2 py-1.5 bg-white border-y border-zinc-200 text-zinc-900 font-semibold text-sm focus:ring-1 focus:ring-zinc-900 outline-none transition text-center tabular-nums"
                   placeholder="0"

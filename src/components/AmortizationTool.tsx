@@ -43,18 +43,40 @@ import {
 import { SimulatorSubTab } from '../types';
 import { RentVsFinancingTab } from './simulator/RentVsFinancingTab';
 import { InvestorCalculatorTab } from './simulator/InvestorCalculatorTab';
+import { 
+  calculateMaxTermForAge, 
+  getAgeFinancingDiagnosis, 
+  getMIPInsuranceRateMonthly 
+} from '../utils/mcmvAgeRules';
 
 export const AmortizationTool: React.FC = () => {
   // Sub-tab Navigation: Amortização, Aluguel vs Financiamento, Investidores
   const [activeSubTab, setActiveSubTab] = useState<SimulatorSubTab>('amortizacao');
 
   // Input State
+  const [clientAge, setClientAge] = useState<number>(32);
   const [financedAmount, setFinancedAmount] = useState<number>(400000);
   const [termMonths, setTermMonths] = useState<number>(360);
   const [annualInterestRate, setAnnualInterestRate] = useState<number>(9.99);
   const [system, setSystem] = useState<AmortizationSystem>('SAC');
   const [adminFee, setAdminFee] = useState<number>(25);
   const [mipDfiRate, setMipDfiRate] = useState<number>(0.025); // ~0.025% sobre saldo
+
+  // Diagnóstico MCMV / Caixa por Idade
+  const ageDiagnosis = useMemo(() => {
+    return getAgeFinancingDiagnosis(clientAge, financedAmount, annualInterestRate, system);
+  }, [clientAge, financedAmount, annualInterestRate, system]);
+
+  const handleAgeChange = (newAge: number) => {
+    const safeAge = Math.max(18, Math.min(80, newAge));
+    setClientAge(safeAge);
+    const termInfo = calculateMaxTermForAge(safeAge);
+    if (termMonths > termInfo.maxTermMonths) {
+      setTermMonths(termInfo.maxTermMonths);
+    }
+    const mipRate = getMIPInsuranceRateMonthly(safeAge);
+    setMipDfiRate(Math.round(mipRate * 10000) / 10000);
+  };
 
   // Extra Amortization State
   const [extraAmount, setExtraAmount] = useState<number>(1000);
@@ -349,27 +371,109 @@ _Simulação gerada pela Torre Sul Imobiliária._`;
               </div>
             </div>
 
+            {/* Idade do Proponente (Regra MCMV / Caixa) */}
+            <div className="pt-1">
+              <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                <span>Idade do Proponente / Comprador</span>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${
+                  clientAge >= 50
+                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                    : 'bg-slate-100 text-slate-700'
+                }`}>
+                  {clientAge} anos {clientAge >= 50 && '⚠️ Regra 80,5a'}
+                </span>
+              </label>
+
+              <div className="flex items-center gap-2">
+                <div className="relative w-28">
+                  <input
+                    type="number"
+                    min="18"
+                    max="80"
+                    value={clientAge}
+                    onChange={(e) => handleAgeChange(parseInt(e.target.value) || 18)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  />
+                  <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-semibold">anos</span>
+                </div>
+                <input
+                  type="range"
+                  min="18"
+                  max="75"
+                  value={clientAge}
+                  onChange={(e) => handleAgeChange(parseInt(e.target.value) || 18)}
+                  className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-900"
+                />
+              </div>
+
+              {/* Quick Age Presets */}
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {[25, 35, 45, 50, 55, 62].map((ageVal) => (
+                  <button
+                    key={ageVal}
+                    type="button"
+                    onClick={() => handleAgeChange(ageVal)}
+                    className={`text-[11px] px-2 py-0.5 rounded-md font-semibold transition cursor-pointer ${
+                      clientAge === ageVal
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : ageVal >= 50
+                        ? 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {ageVal} anos {ageVal >= 50 && '⚠️'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Parâmetros Técnicos CEF (Regra 80,5 anos) */}
+            <div className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+              <div>
+                <span className="font-semibold text-slate-800">Parâmetros CEF (80,5 anos):</span>{' '}
+                <span>Teto de <strong>{ageDiagnosis.maxTermMonths} meses</strong> ({ageDiagnosis.maxTermYears} anos)</span>
+              </div>
+              <div className="text-[11px] text-slate-500">
+                Seguro MIP: <strong className="text-slate-700">{ageDiagnosis.mipRateFormatted}</strong>
+              </div>
+            </div>
+
             {/* Prazo e Taxa de Juros */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Prazo Total
+                <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Prazo Total</span>
+                  {termMonths > ageDiagnosis.maxTermMonths && (
+                    <span className="text-[10px] text-red-600 font-bold">Excede teto!</span>
+                  )}
                 </label>
                 <div className="relative">
                   <input
                     type="number"
                     min="12"
-                    max="480"
-                    step="12"
+                    max={ageDiagnosis.maxTermMonths}
                     value={termMonths}
-                    onChange={(e) => setTermMonths(parseInt(e.target.value) || 1)}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 1;
+                      setTermMonths(Math.min(val, ageDiagnosis.maxTermMonths));
+                    }}
                     className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    placeholder="Ex: 330"
                   />
                   <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-semibold">meses</span>
                 </div>
-                <span className="text-[11px] text-slate-400 block mt-1">
-                  {Math.round(termMonths / 12)} anos ({termMonths}x)
-                </span>
+                <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
+                  <span>{Math.round(termMonths / 12)} anos ({termMonths}x)</span>
+                  {ageDiagnosis.isLimitedByAge && (
+                    <button
+                      type="button"
+                      onClick={() => setTermMonths(ageDiagnosis.maxTermMonths)}
+                      className="text-amber-800 font-bold hover:underline cursor-pointer"
+                    >
+                      Usar teto ({ageDiagnosis.maxTermMonths}m)
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div>

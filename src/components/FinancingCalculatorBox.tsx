@@ -5,26 +5,37 @@ import { round2 } from '../utils/calculator';
 
 interface FinancingCalculatorBoxProps {
   valorImovel: number;
+  valorAdimplencia?: number;
+  temAdimplencia?: boolean;
   financiamentoAtual: number;
   onChangeFinanciamento: (novoValor: number) => void;
 }
 
 export const FinancingCalculatorBox: React.FC<FinancingCalculatorBoxProps> = ({
   valorImovel,
+  valorAdimplencia = 0,
+  temAdimplencia = false,
   financiamentoAtual,
   onChangeFinanciamento,
 }) => {
   // Mode: 'financ' (% do financiamento) vs 'entrada' (% da entrada, financiando o restante)
   const [mode, setMode] = useState<'financ' | 'entrada'>('financ');
+  // Se tem adimplência preenchida, calcula por padrão sobre o valor com adimplência (Total da Venda)
+  const [useAdimplenciaBase, setUseAdimplenciaBase] = useState<boolean>(true);
   const [selectedOption, setSelectedOption] = useState<number | 'custom' | null>(null);
   const [customPercent, setCustomPercent] = useState<string>('');
 
-  // Calculate current effective percentage based on current mode
-  const currentPercentOfProperty = valorImovel > 0 ? (financiamentoAtual / valorImovel) * 100 : 0;
+  const hasAdimplencia = temAdimplencia && (valorAdimplencia || 0) > 0;
+  const valorBase = hasAdimplencia && useAdimplenciaBase
+    ? (valorImovel || 0) + (valorAdimplencia || 0)
+    : (valorImovel || 0);
+
+  // Calculate current effective percentage based on current effective base
+  const currentPercentOfProperty = valorBase > 0 ? (financiamentoAtual / valorBase) * 100 : 0;
 
   // Determine which percentage button corresponds to current value
   useEffect(() => {
-    if (valorImovel <= 0) return;
+    if (valorBase <= 0) return;
 
     if (mode === 'financ') {
       const match = [10, 20, 30, 80].find(
@@ -53,18 +64,18 @@ export const FinancingCalculatorBox: React.FC<FinancingCalculatorBoxProps> = ({
         setSelectedOption(null);
       }
     }
-  }, [financiamentoAtual, valorImovel, mode]);
+  }, [financiamentoAtual, valorBase, mode, currentPercentOfProperty]);
 
   const handleSelectPreset = (pct: number) => {
     setSelectedOption(pct);
-    if (valorImovel <= 0) return;
+    if (valorBase <= 0) return;
 
     let targetFinanc = 0;
     if (mode === 'financ') {
-      targetFinanc = round2((valorImovel * pct) / 100);
+      targetFinanc = round2((valorBase * pct) / 100);
     } else {
       // mode === 'entrada' (e.g. 20% entrada -> 80% financ)
-      targetFinanc = round2((valorImovel * (100 - pct)) / 100);
+      targetFinanc = round2((valorBase * (100 - pct)) / 100);
     }
 
     onChangeFinanciamento(targetFinanc);
@@ -76,22 +87,22 @@ export const FinancingCalculatorBox: React.FC<FinancingCalculatorBoxProps> = ({
     setSelectedOption('custom');
 
     const num = parseFloat(rawVal);
-    if (!isNaN(num) && num >= 0 && num <= 100 && valorImovel > 0) {
+    if (!isNaN(num) && num >= 0 && num <= 100 && valorBase > 0) {
       let targetFinanc = 0;
       if (mode === 'financ') {
-        targetFinanc = round2((valorImovel * num) / 100);
+        targetFinanc = round2((valorBase * num) / 100);
       } else {
-        targetFinanc = round2((valorImovel * (100 - num)) / 100);
+        targetFinanc = round2((valorBase * (100 - num)) / 100);
       }
       onChangeFinanciamento(targetFinanc);
     }
   };
 
   const calculatePreview = (pct: number) => {
-    if (valorImovel <= 0) return 'R$ 0,00';
+    if (valorBase <= 0) return 'R$ 0,00';
     const val = mode === 'financ' 
-      ? (valorImovel * pct) / 100 
-      : (valorImovel * (100 - pct)) / 100;
+      ? (valorBase * pct) / 100 
+      : (valorBase * (100 - pct)) / 100;
     return formatBRL(val);
   };
 
@@ -132,6 +143,58 @@ export const FinancingCalculatorBox: React.FC<FinancingCalculatorBoxProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Base de Cálculo: Com Desconto Concedido vs Só Imóvel */}
+      {hasAdimplencia && (
+        <div className="flex items-center justify-between gap-2 p-1.5 bg-emerald-50/80 border border-emerald-200 rounded-md text-[11px] text-emerald-950 flex-wrap">
+          <div className="flex items-center gap-1">
+            <span className="font-semibold">Base p/ cálculo (%):</span>
+            <strong className="text-emerald-900 font-bold">{formatBRL(valorBase)}</strong>
+          </div>
+          <div className="inline-flex items-center gap-1 text-[10px]">
+            <button
+              type="button"
+              onClick={() => {
+                setUseAdimplenciaBase(true);
+                if (selectedOption && typeof selectedOption === 'number') {
+                  const target = mode === 'financ'
+                    ? round2(((valorImovel + valorAdimplencia) * selectedOption) / 100)
+                    : round2(((valorImovel + valorAdimplencia) * (100 - selectedOption)) / 100);
+                  onChangeFinanciamento(target);
+                }
+              }}
+              title="Calcular sobre o valor da venda com desconto concedido incluso"
+              className={`px-2 py-0.5 rounded font-bold transition cursor-pointer ${
+                useAdimplenciaBase
+                  ? 'bg-emerald-600 text-white shadow-2xs'
+                  : 'text-emerald-800 hover:bg-emerald-100'
+              }`}
+            >
+              Com Desconto (+{formatBRL(valorAdimplencia)})
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setUseAdimplenciaBase(false);
+                if (selectedOption && typeof selectedOption === 'number') {
+                  const target = mode === 'financ'
+                    ? round2((valorImovel * selectedOption) / 100)
+                    : round2((valorImovel * (100 - selectedOption)) / 100);
+                  onChangeFinanciamento(target);
+                }
+              }}
+              title="Calcular apenas sobre o valor do imóvel sem desconto"
+              className={`px-1.5 py-0.5 rounded font-medium transition cursor-pointer ${
+                !useAdimplenciaBase
+                  ? 'bg-slate-700 text-white shadow-2xs'
+                  : 'text-slate-600 hover:bg-slate-200/60'
+              }`}
+            >
+              Apenas Imóvel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Preset Options Grid */}
       <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5 pt-0.5">
@@ -199,8 +262,8 @@ export const FinancingCalculatorBox: React.FC<FinancingCalculatorBoxProps> = ({
             }`}
           >
             <span>80%</span>
-            <span className="block text-[9px] font-normal opacity-85 truncate">
-              Padrão CEF
+            <span className="block text-[9px] font-semibold opacity-95 truncate text-amber-700">
+              {hasAdimplencia ? 'c/ Adimplência' : 'Padrão CEF'}
             </span>
           </button>
         ) : (
@@ -211,8 +274,8 @@ export const FinancingCalculatorBox: React.FC<FinancingCalculatorBoxProps> = ({
             className="px-2 py-1.5 rounded-md border text-center font-bold text-xs bg-white text-slate-700 border-slate-200 hover:border-red-300 hover:bg-red-50/50"
           >
             <span>Padrão</span>
-            <span className="block text-[9px] font-normal opacity-85 truncate">
-              80% CEF
+            <span className="block text-[9px] font-semibold opacity-95 truncate text-amber-700">
+              {hasAdimplencia ? '80% c/ Adimp.' : '80% CEF'}
             </span>
           </button>
         )}

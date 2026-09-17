@@ -14,6 +14,56 @@ export function formatCurrency(value: number): string {
 }
 
 /**
+ * Safely parse Brazilian currency string into float number
+ * Handles:
+ * - "350.000,00" -> 350000
+ * - "76.847,87" -> 76847.87
+ * - "350000,00" -> 350000
+ * - "350.000" -> 350000
+ * - "350000" -> 350000
+ * - "R$ 350.000,00" -> 350000
+ * - "76847.87" -> 76847.87
+ */
+export function parseBRLInput(valueStr: string | number): number {
+  if (typeof valueStr === 'number') return isNaN(valueStr) ? 0 : valueStr;
+  if (!valueStr) return 0;
+  
+  const clean = String(valueStr).trim().replace(/^R\$\s?/, '');
+  if (!clean) return 0;
+
+  // Case 1: Brazilian decimal comma present (e.g. "350.000,00" or "76.847,87")
+  if (clean.includes(',')) {
+    const parts = clean.split(',');
+    const integerDigits = parts[0].replace(/\D/g, '');
+    const decimalDigits = (parts[1] || '').replace(/\D/g, '').slice(0, 2);
+    const parsed = parseFloat(`${integerDigits || '0'}.${decimalDigits || '0'}`);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+
+  // Case 2: Dot as decimal separator (e.g. "76847.87")
+  if (clean.includes('.') && /^\d+\.\d{1,2}$/.test(clean)) {
+    const parsed = parseFloat(clean);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+
+  // Case 3: Thousands dots or raw integer (e.g. "350.000" or "350000")
+  const onlyDigits = clean.replace(/\D/g, '');
+  return Number(onlyDigits) || 0;
+}
+
+/**
+ * Format a number for input display in pt-BR
+ */
+export function formatBRLNumber(value: number): string {
+  if (value === null || value === undefined || isNaN(value) || value <= 0) return '';
+  const hasDecimals = value % 1 !== 0;
+  return value.toLocaleString('pt-BR', {
+    minimumFractionDigits: hasDecimals ? 2 : 0,
+    maximumFractionDigits: 2,
+  });
+}
+
+/**
  * Format compact currency for charts (e.g., R$ 15k, R$ 1,2M)
  */
 export function formatCurrencyCompact(value: number): string {

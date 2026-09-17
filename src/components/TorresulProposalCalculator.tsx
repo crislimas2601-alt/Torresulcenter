@@ -232,6 +232,25 @@ export const TorresulProposalCalculator: React.FC = () => {
     handleUpdate({ financiamento: neededFinancing });
   };
 
+  const handleUpdateAdimplencia = (newTemAdimplencia: boolean, newValorAdimplencia: number) => {
+    const currentFinanc = proposal.financiamento || 0;
+    const propVal = proposal.valorImovel || 0;
+    const was80PercentSem = Math.abs(currentFinanc - round2(propVal * 0.8)) <= 2;
+
+    let newFinanc = currentFinanc;
+    if (newTemAdimplencia && newValorAdimplencia > 0 && was80PercentSem) {
+      newFinanc = round2((propVal + newValorAdimplencia) * 0.8);
+    } else if (!newTemAdimplencia && was80PercentSem) {
+      newFinanc = round2(propVal * 0.8);
+    }
+
+    handleUpdate({
+      temAdimplencia: newTemAdimplencia,
+      valorAdimplencia: newValorAdimplencia,
+      financiamento: newFinanc,
+    });
+  };
+
   const handleClear = () => {
     if (window.confirm('Deseja realmente limpar todos os campos da proposta?')) {
       setProposal({
@@ -291,12 +310,15 @@ export const TorresulProposalCalculator: React.FC = () => {
     }
   };
 
-  // Financing percentage display
+  // Financing percentage display (considera valor com adimplência se preenchida)
   const financPercentDisplay = useMemo(() => {
-    if (!proposal.valorImovel || proposal.valorImovel <= 0) return '0%';
-    const pct = ((proposal.financiamento || 0) / proposal.valorImovel) * 100;
+    const baseValue = proposal.temAdimplencia && proposal.valorAdimplencia
+      ? (proposal.valorImovel || 0) + (proposal.valorAdimplencia || 0)
+      : (proposal.valorImovel || 0);
+    if (!baseValue || baseValue <= 0) return '0%';
+    const pct = ((proposal.financiamento || 0) / baseValue) * 100;
     return `${pct.toFixed(1)}%`;
-  }, [proposal.valorImovel, proposal.financiamento]);
+  }, [proposal.valorImovel, proposal.temAdimplencia, proposal.valorAdimplencia, proposal.financiamento]);
 
   return (
     <div className="space-y-6 pb-24">
@@ -390,7 +412,7 @@ export const TorresulProposalCalculator: React.FC = () => {
                 1. Imóvel & Recursos
               </h3>
               <p className="text-xs text-slate-500">
-                Valor do contrato, adimplência, financiamento e FGTS
+                Valor do contrato, desconto concedido, financiamento e FGTS
               </p>
             </div>
 
@@ -416,12 +438,12 @@ export const TorresulProposalCalculator: React.FC = () => {
               </span>
             </div>
 
-            {/* Adimplência de Negociação (Box com Segmented Switch Sem / Com Adimplência) */}
+            {/* Desconto Concedido no Imóvel (Box com Segmented Switch Sem / Com Desconto Concedido) */}
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-slate-800">
-                    Adimplência de Negociação
+                    Desconto Concedido no Imóvel
                   </span>
                 </div>
 
@@ -429,55 +451,74 @@ export const TorresulProposalCalculator: React.FC = () => {
                 <div className="flex items-center bg-slate-200 p-1 rounded-lg">
                   <button
                     type="button"
-                    onClick={() =>
-                      handleUpdate({
-                        temAdimplencia: false,
-                        valorAdimplencia: 0,
-                      })
-                    }
+                    onClick={() => handleUpdateAdimplencia(false, 0)}
                     className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
                       !proposal.temAdimplencia
                         ? 'bg-white text-slate-800 shadow-xs'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    Sem Adimplência
+                    Sem Desconto
                   </button>
 
                   <button
                     type="button"
-                    onClick={() =>
-                      handleUpdate({
-                        temAdimplencia: true,
-                        valorAdimplencia: proposal.valorAdimplencia || 500,
-                      })
-                    }
+                    onClick={() => handleUpdateAdimplencia(true, proposal.valorAdimplencia || 500)}
                     className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
                       proposal.temAdimplencia
-                        ? 'bg-amber-600 text-white shadow-xs'
+                        ? 'bg-emerald-600 text-white shadow-xs'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    Com Adimplência
+                    Com Desconto
                   </button>
                 </div>
               </div>
 
               {proposal.temAdimplencia && (
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Valor da Adimplência
-                  </label>
-                  <CurrencyInput
-                    id="valor_adimplencia_input"
-                    value={proposal.valorAdimplencia || 0}
-                    onChange={(val) => handleUpdate({ valorAdimplencia: val })}
-                    placeholder="0,00"
-                    className="border-amber-300 bg-amber-50/40 text-amber-950 font-bold"
-                  />
-                  <span className="text-[11px] text-slate-500 mt-1 block">
-                    Este valor é somado ao total da negociação e exibido no contrato.
-                  </span>
+                <div className="space-y-2.5">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Valor do Desconto Concedido (R$)
+                    </label>
+                    <CurrencyInput
+                      id="valor_desconto_input"
+                      value={proposal.valorAdimplencia || 0}
+                      onChange={(val) => handleUpdateAdimplencia(true, val)}
+                      placeholder="0,00"
+                      className="border-emerald-300 bg-emerald-50/40 text-emerald-950 font-bold"
+                    />
+                    <span className="text-[11px] text-slate-500 mt-1 block">
+                      Este valor é computado no fluxo da negociação e considerado na base de 80% do financiamento.
+                    </span>
+                  </div>
+
+                  {proposal.valorImovel > 0 && (proposal.valorAdimplencia || 0) > 0 && (
+                    <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-300 flex items-center justify-between gap-2 flex-wrap">
+                      <div className="text-xs text-emerald-950">
+                        <span className="font-semibold block">Base de Financiamento c/ Desconto:</span>
+                        <strong className="text-sm font-bold text-emerald-900">
+                          {formatBRL(proposal.valorImovel + proposal.valorAdimplencia)}
+                        </strong>
+                        <span className="text-[11px] text-emerald-800 ml-1.5">
+                          (80% = {formatBRL(round2((proposal.valorImovel + proposal.valorAdimplencia) * 0.8))})
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleUpdate({
+                            financiamento: round2((proposal.valorImovel + proposal.valorAdimplencia) * 0.8),
+                          })
+                        }
+                        className="px-2.5 py-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-md shadow-2xs transition cursor-pointer"
+                        title="Ajustar financiamento para exatamente 80% do valor da venda com o desconto concedido"
+                      >
+                        Aplicar 80% com Desconto
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -506,6 +547,8 @@ export const TorresulProposalCalculator: React.FC = () => {
                 <div className="mt-2">
                   <FinancingCalculatorBox
                     valorImovel={proposal.valorImovel}
+                    valorAdimplencia={proposal.valorAdimplencia}
+                    temAdimplencia={proposal.temAdimplencia}
                     financiamentoAtual={proposal.financiamento}
                     onChangeFinanciamento={(val) => handleUpdate({ financiamento: val })}
                   />

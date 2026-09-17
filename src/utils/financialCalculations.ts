@@ -1,4 +1,5 @@
 import { LoanInput, ExtraAmortizationInput, SimulationResult, SimulationScheduleRow } from '../types';
+import { getMIPInsuranceRateMonthly } from './mcmvAgeRules';
 
 export const MCMV_BANDS = [
   { id: 1, name: 'Faixa 1', defaultRate: 4.25, incomeRange: 'Até R$ 2.640' },
@@ -20,50 +21,87 @@ export function calculatePriceInstallment(principal: number, monthlyRate: number
 /**
  * Calculates instant installment elimination for a single lump-sum extra payment
  */
-export function calculateInstantElimination(loan: LoanInput, extraAmount: number): { installmentsEliminated: number } {
+export function calculateInstantElimination(loan: LoanInput, extraAmount: number): {
+  installmentsEliminated: number;
+  interestSavedEstimate?: number;
+  totalSavedEstimate?: number;
+} {
   if (!extraAmount || extraAmount <= 0) {
-    return { installmentsEliminated: 0 };
+    return { installmentsEliminated: 0, interestSavedEstimate: 0, totalSavedEstimate: 0 };
   }
 
   const financedAmount = Math.max(0, loan.propertyValue - loan.downPayment);
   if (financedAmount <= 0 || loan.termMonths <= 0) {
-    return { installmentsEliminated: 0 };
+    return { installmentsEliminated: 0, interestSavedEstimate: 0, totalSavedEstimate: 0 };
   }
+
+  const monthlyRate = getMonthlyRate(loan.annualInterestRate || 7.66);
 
   if (loan.system === 'SAC') {
     const monthlyAmort = financedAmount / loan.termMonths;
     const count = Math.min(loan.termMonths, Math.floor(extraAmount / (monthlyAmort || 1)));
-    return { installmentsEliminated: count };
+    
+    let interestSaved = 0;
+    let totalSaved = 0;
+    for (let k = 1; k <= count; k++) {
+      const balanceAtMonth = k * monthlyAmort;
+      const intAtMonth = balanceAtMonth * monthlyRate;
+      interestSaved += intAtMonth;
+      totalSaved += monthlyAmort + intAtMonth + (loan.monthlyAdminFee ?? 25);
+    }
+
+    return {
+      installmentsEliminated: count,
+      interestSavedEstimate: interestSaved,
+      totalSavedEstimate: totalSaved,
+    };
   } else {
-    // PRICE: the last installments have the largest principal amortization, roughly equal to the PMT discounted
-    const monthlyRate = getMonthlyRate(loan.annualInterestRate);
+    // PRICE: the last installments have the largest principal amortization
     const pmt = calculatePriceInstallment(financedAmount, monthlyRate, loan.termMonths);
-    // Simulating from the end:
     let remainingExtra = extraAmount;
     let eliminatedCount = 0;
-    // For Price, each month k from the end has principal = pmt / (1+r)^(term - k + 1)
+    let interestSaved = 0;
+    let totalSaved = 0;
+
     for (let k = 1; k <= loan.termMonths; k++) {
       const principalPart = pmt / Math.pow(1 + monthlyRate, k);
+      const interestPart = pmt - principalPart;
+      
       if (remainingExtra >= principalPart) {
         remainingExtra -= principalPart;
         eliminatedCount++;
+        interestSaved += interestPart;
+        totalSaved += pmt + (loan.monthlyAdminFee ?? 25);
       } else {
         break;
       }
     }
-    return { installmentsEliminated: Math.min(loan.termMonths, eliminatedCount) };
+    return {
+      installmentsEliminated: Math.min(loan.termMonths, eliminatedCount),
+      interestSavedEstimate: interestSaved,
+      totalSavedEstimate: totalSaved,
+    };
   }
 }
 
 /**
- * Full simulation engine for mortgage amortization
+ * Full simulation engine for mortgage amortization (Caixa MCMV & SBPE)
  */
 export function runSimulation(loan: LoanInput, extra: ExtraAmortizationInput): SimulationResult {
   const financedAmount = Math.max(0, loan.propertyValue - loan.downPayment);
-  const termMonths = loan.termMonths || 360;
-  const monthlyRate = getMonthlyRate(loan.annualInterestRate || 5.5);
+  const termMonths = Math.max(1, loan.termMonths || 360);
+  const monthlyRate = getMonthlyRate(loan.annualInterestRate || 7.66);
   const adminFee = loan.monthlyAdminFee ?? 25;
-  const insuranceRate = (loan.insuranceRateMonthly ?? 0.025) / 100;
+  
+  // DFI: Proteção física do imóvel (~0.0071% a.m. sobre o valor de avaliação)
+  const dfiFee = (loan.propertyValue || 0) * 0.000071;
+
+  // MIP: Seguro de vida proporcional à idade do proponente sobre o saldo devedor
+  const age = loan.clientAge || 32;
+  const mipRatePercent = loan.insuranceRateMonthly !== undefined && loan.insuranceRateMonthly !== 0.025
+    ? loan.insuranceRateMonthly
+    : getMIPInsuranceRateMonthly(age);
+  const mipRate = mipRatePercent / 100;
 
   // 1. Standard schedule without extra payments
   const standardSchedule: SimulationScheduleRow[] = [];
@@ -89,7 +127,10 @@ export function runSimulation(loan: LoanInput, extra: ExtraAmortizationInput): S
       amort = Math.max(0, pmtWithoutFees - interest);
     }
 
-    const fees = adminFee + (stdBalance * insuranceRate);
+    const currentMIP = stdBalance * mipRate;
+    // No último mês a tarifa Caixa pode ser abonada/reduzida se saldo quitado
+    const currentAdmin = stdBalance > 100 ? adminFee : 0;
+    const fees = currentAdmin + dfiFee + currentMIP;
     const totalPayment = pmtWithoutFees + fees;
     const endingBalance = Math.max(0, stdBalance - amort);
 
@@ -157,7 +198,9 @@ export function runSimulation(loan: LoanInput, extra: ExtraAmortizationInput): S
     extraThisMonth = Math.max(0, Math.min(curBalance - regAmort, extraThisMonth));
     totalExtraAmortized += extraThisMonth;
 
-    const fees = adminFee + (curBalance * insuranceRate);
+    const currentMIP = curBalance * mipRate;
+    const currentAdmin = curBalance > 100 ? adminFee : 0;
+    const fees = currentAdmin + dfiFee + currentMIP;
     const totalPayment = pmtWithoutFees + fees + extraThisMonth;
     const endingBalance = Math.max(0, curBalance - regAmort - extraThisMonth);
 

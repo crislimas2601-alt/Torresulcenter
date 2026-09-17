@@ -1,12 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Percent,
   ChevronDown,
   ChevronUp,
+  User,
+  AlertTriangle,
+  Info,
+  ShieldCheck,
+  TrendingDown,
+  Calendar,
 } from 'lucide-react';
 import { LoanInput, SimulationResult } from '../types';
 import { MCMV_BANDS, runSimulation } from '../utils/financialCalculations';
-import { formatCurrency } from '../utils/formatters';
+import { calculateMaxTermForAge, getAgeFinancingDiagnosis } from '../utils/mcmvAgeRules';
+import { formatCurrency, parseBRLInput, formatBRLNumber } from '../utils/formatters';
 
 interface ContractFormProps {
   loan: LoanInput;
@@ -15,7 +22,7 @@ interface ContractFormProps {
   presentationMode?: boolean;
 }
 
-const PROPERTY_PRESETS = [180000, 220000, 260000, 320000, 400000];
+const PROPERTY_PRESETS = [200000, 260000, 300000, 350000, 420000];
 
 export const ContractForm: React.FC<ContractFormProps> = ({
   loan,
@@ -24,6 +31,28 @@ export const ContractForm: React.FC<ContractFormProps> = ({
   presentationMode = false,
 }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Local string states for smooth numeric editing without cursor jumping or format corruption
+  const [propertyValueStr, setPropertyValueStr] = useState<string>(
+    loan.propertyValue ? formatBRLNumber(loan.propertyValue) : ''
+  );
+  const [downPaymentStr, setDownPaymentStr] = useState<string>(
+    loan.downPayment ? formatBRLNumber(loan.downPayment) : ''
+  );
+  const [isPropFocused, setIsPropFocused] = useState(false);
+  const [isDownFocused, setIsDownFocused] = useState(false);
+
+  useEffect(() => {
+    if (!isPropFocused) {
+      setPropertyValueStr(loan.propertyValue ? formatBRLNumber(loan.propertyValue) : '');
+    }
+  }, [loan.propertyValue, isPropFocused]);
+
+  useEffect(() => {
+    if (!isDownFocused) {
+      setDownPaymentStr(loan.downPayment ? formatBRLNumber(loan.downPayment) : '');
+    }
+  }, [loan.downPayment, isDownFocused]);
 
   const financedAmount = Math.max(0, loan.propertyValue - loan.downPayment);
   const downPaymentPercent = loan.propertyValue > 0 ? (loan.downPayment / loan.propertyValue) * 100 : 0;
@@ -51,25 +80,71 @@ export const ContractForm: React.FC<ContractFormProps> = ({
       ? (firstInstallment - lastInstallment) / (loan.termMonths - 1)
       : 0;
 
-  const handlePropertyValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = Number(e.target.value.replace(/\D/g, ''));
+  // MCMV Age Rules & Diagnosis (Regra dos 80 anos e 6 meses da Caixa)
+  const clientAge = loan.clientAge || 35;
+  const ageDiagnosis = getAgeFinancingDiagnosis(
+    clientAge,
+    financedAmount,
+    loan.annualInterestRate,
+    loan.system
+  );
+
+  const handleAgeChange = (newAge: number) => {
+    const safeAge = Math.max(18, Math.min(80, newAge));
+    const termInfo = calculateMaxTermForAge(safeAge);
+    const updatedTerm = Math.min(loan.termMonths, termInfo.maxTermMonths);
     onChange({
       ...loan,
-      propertyValue: val,
-      downPayment: Math.min(loan.downPayment, val),
+      clientAge: safeAge,
+      termMonths: updatedTerm,
     });
   };
 
-  const handleDownPaymentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = Number(e.target.value.replace(/\D/g, ''));
+  const handlePropertyValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    setPropertyValueStr(raw);
+    const parsed = parseBRLInput(raw);
     onChange({
       ...loan,
-      downPayment: Math.min(val, loan.propertyValue),
+      propertyValue: parsed,
+      downPayment: Math.min(loan.downPayment, parsed),
     });
+  };
+
+  const handlePropertyValueBlur = () => {
+    setIsPropFocused(false);
+    const parsed = parseBRLInput(propertyValueStr);
+    onChange({
+      ...loan,
+      propertyValue: parsed,
+      downPayment: Math.min(loan.downPayment, parsed),
+    });
+    setPropertyValueStr(parsed ? formatBRLNumber(parsed) : '');
+  };
+
+  const handleDownPaymentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    setDownPaymentStr(raw);
+    const parsed = parseBRLInput(raw);
+    onChange({
+      ...loan,
+      downPayment: Math.min(parsed, loan.propertyValue),
+    });
+  };
+
+  const handleDownPaymentBlur = () => {
+    setIsDownFocused(false);
+    const parsed = parseBRLInput(downPaymentStr);
+    onChange({
+      ...loan,
+      downPayment: Math.min(parsed, loan.propertyValue),
+    });
+    setDownPaymentStr(parsed ? formatBRLNumber(parsed) : '');
   };
 
   const handleDownPaymentPercentClick = (percent: number) => {
     const newDown = Math.round(loan.propertyValue * (percent / 100));
+    setDownPaymentStr(formatBRLNumber(newDown));
     onChange({
       ...loan,
       downPayment: newDown,
@@ -113,7 +188,9 @@ export const ContractForm: React.FC<ContractFormProps> = ({
             <input
               id="property-value-input"
               type="text"
-              value={loan.propertyValue.toLocaleString('pt-BR')}
+              value={propertyValueStr}
+              onFocus={() => setIsPropFocused(true)}
+              onBlur={handlePropertyValueBlur}
               onChange={handlePropertyValueChange}
               className="w-full pl-10 pr-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-900 font-semibold text-sm focus:bg-white focus:ring-1 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition tabular-nums"
               placeholder="0"
@@ -125,8 +202,11 @@ export const ContractForm: React.FC<ContractFormProps> = ({
               <button
                 key={val}
                 type="button"
-                onClick={() => onChange({ ...loan, propertyValue: val, downPayment: Math.min(loan.downPayment, val) })}
-                className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition ${
+                onClick={() => {
+                  setPropertyValueStr(formatBRLNumber(val));
+                  onChange({ ...loan, propertyValue: val, downPayment: Math.min(loan.downPayment, val) });
+                }}
+                className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition cursor-pointer ${
                   loan.propertyValue === val
                     ? 'bg-zinc-900 text-white shadow-xs'
                     : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200/80 border border-zinc-200/80'
@@ -153,32 +233,108 @@ export const ContractForm: React.FC<ContractFormProps> = ({
             <input
               id="down-payment-input"
               type="text"
-              value={loan.downPayment.toLocaleString('pt-BR')}
+              value={downPaymentStr}
+              onFocus={() => setIsDownFocused(true)}
+              onBlur={handleDownPaymentBlur}
               onChange={handleDownPaymentChange}
               className="w-full pl-10 pr-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-900 font-semibold text-sm focus:bg-white focus:ring-1 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition tabular-nums"
               placeholder="0"
             />
           </div>
           {/* Percent chips */}
-          <div className="flex items-center gap-1.5 mt-2">
-            {[10, 20, 30, 40].map((pct) => (
-              <button
-                key={pct}
-                type="button"
-                onClick={() => handleDownPaymentPercentClick(pct)}
-                className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition ${
-                  Math.round(downPaymentPercent) === pct
-                    ? 'bg-zinc-900 text-white shadow-xs'
-                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200/80 border border-zinc-200/80'
-                }`}
-              >
-                {pct}% ({formatCurrency(loan.propertyValue * (pct / 100))})
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center justify-between gap-1.5 mt-2">
+            <div className="flex items-center gap-1.5">
+              {[10, 20, 30, 40].map((pct) => (
+                <button
+                  key={pct}
+                  type="button"
+                  onClick={() => handleDownPaymentPercentClick(pct)}
+                  className={`text-xs px-2.5 py-1 rounded-md font-semibold transition cursor-pointer ${
+                    Math.round(downPaymentPercent) === pct
+                      ? 'bg-zinc-900 text-white shadow-xs'
+                      : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200/80 border border-zinc-200/80'
+                  }`}
+                >
+                  {pct}%
+                </button>
+              ))}
+            </div>
+            <span className="text-[11px] text-zinc-500 font-medium">
+              {formatCurrency(loan.downPayment)}
+            </span>
           </div>
         </div>
 
-        {/* Prazo em Meses */}
+        {/* Idade do Proponente (Regra MCMV / Caixa) */}
+        <div>
+          <label className="block text-xs font-semibold text-zinc-700 mb-1.5 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-zinc-600" />
+              <span>Idade do Comprador / Proponente Mais Velho</span>
+            </span>
+            <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${
+              clientAge >= 50
+                ? 'bg-amber-100 text-amber-800'
+                : 'bg-zinc-100 text-zinc-700'
+            }`}>
+              {clientAge} anos
+            </span>
+          </label>
+
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                id="client-age-input"
+                type="number"
+                min="18"
+                max="80"
+                value={clientAge}
+                onChange={(e) => handleAgeChange(Number(e.target.value))}
+                className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-900 font-bold text-sm focus:bg-white focus:ring-1 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition tabular-nums"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400 font-medium">
+                anos
+              </span>
+            </div>
+
+            <input
+              type="range"
+              min="18"
+              max="75"
+              value={clientAge}
+              onChange={(e) => handleAgeChange(Number(e.target.value))}
+              className="flex-1 h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-zinc-900"
+            />
+          </div>
+
+          {/* Quick Age Presets */}
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {[25, 35, 45, 50, 55, 62].map((ageVal) => (
+              <button
+                key={ageVal}
+                type="button"
+                onClick={() => handleAgeChange(ageVal)}
+                className={`text-[11px] px-2 py-0.5 rounded-md font-medium transition ${
+                  clientAge === ageVal
+                    ? 'bg-zinc-900 text-white shadow-xs'
+                    : ageVal >= 50
+                    ? 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200'
+                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200/80 border border-zinc-200/80'
+                }`}
+              >
+                {ageVal} anos {ageVal >= 50 && '⚠️'}
+              </button>
+            ))}
+          </div>
+
+          {/* Sub-label explaining Caixa rule */}
+          <div className="mt-1.5 text-[11px] text-zinc-500 flex items-center justify-between">
+            <span>Regra Caixa: Idade + Prazo ≤ 80,5 anos</span>
+            <span className="font-semibold text-zinc-700">Teto: {ageDiagnosis.maxTermFormatted}</span>
+          </div>
+        </div>
+
+        {/* Prazo em Meses com Entrada Manual e Atalhos */}
         <div>
           <label className="block text-xs font-semibold text-zinc-700 mb-1.5 flex items-center justify-between">
             <span>Prazo do Financiamento</span>
@@ -186,31 +342,91 @@ export const ContractForm: React.FC<ContractFormProps> = ({
               {Math.floor(loan.termMonths / 12)} anos ({loan.termMonths} meses)
             </span>
           </label>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { months: 420, label: '420 meses', sub: '35 anos (MCMV)' },
-              { months: 360, label: '360 meses', sub: '30 anos (Padrão)' },
-              { months: 240, label: '240 meses', sub: '20 anos' },
-            ].map((item) => (
+
+          {/* Campo Manual para digitar qualquer quantidade de meses (ex: 330) */}
+          <div className="flex items-center gap-2 mb-2">
+            <div className="relative flex-1">
+              <input
+                id="loan-term-months-input"
+                type="number"
+                min="12"
+                max={ageDiagnosis.maxTermMonths}
+                value={loan.termMonths || ''}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw === '') {
+                    onChange({ ...loan, termMonths: 0 });
+                    return;
+                  }
+                  const val = parseInt(raw, 10);
+                  if (!isNaN(val)) {
+                    onChange({
+                      ...loan,
+                      termMonths: Math.max(1, Math.min(val, ageDiagnosis.maxTermMonths)),
+                    });
+                  }
+                }}
+                className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-900 font-bold text-sm focus:bg-white focus:ring-1 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition tabular-nums"
+                placeholder="Ex: 330"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400 font-medium">
+                meses
+              </span>
+            </div>
+
+            {/* Atalho rápido para usar o teto exato da Caixa */}
+            {ageDiagnosis.isLimitedByAge && loan.termMonths !== ageDiagnosis.maxTermMonths && (
               <button
-                key={item.months}
                 type="button"
-                onClick={() => onChange({ ...loan, termMonths: item.months })}
-                className={`py-2 px-2.5 rounded-lg border text-left transition-all ${
-                  loan.termMonths === item.months
-                    ? 'border-zinc-900 bg-zinc-50 text-zinc-900 ring-1 ring-zinc-900 shadow-xs'
-                    : 'border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700'
-                }`}
+                onClick={() => onChange({ ...loan, termMonths: ageDiagnosis.maxTermMonths })}
+                className="px-2.5 py-2 rounded-lg text-xs font-bold bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 transition shrink-0 cursor-pointer"
+                title="Ajustar para o teto legal permitido pela Caixa"
               >
-                <div className="text-xs font-semibold leading-none">{item.label}</div>
-                <div className="text-[10px] text-zinc-500 mt-1">{item.sub}</div>
+                Usar Teto ({ageDiagnosis.maxTermMonths}m)
               </button>
-            ))}
+            )}
+          </div>
+
+          {/* Atalhos Rápidos Inteligentes */}
+          <div className="grid grid-cols-4 gap-1.5">
+            {[
+              ageDiagnosis.maxTermMonths < 420 && ageDiagnosis.maxTermMonths !== 360 && ageDiagnosis.maxTermMonths !== 240
+                ? { months: ageDiagnosis.maxTermMonths, label: `${ageDiagnosis.maxTermMonths}m (Teto)` }
+                : null,
+              { months: 420, label: '420m (35a)' },
+              { months: 360, label: '360m (30a)' },
+              { months: 300, label: '300m (25a)' },
+              { months: 240, label: '240m (20a)' },
+              { months: 180, label: '180m (15a)' },
+            ]
+              .filter(Boolean)
+              .slice(0, 4)
+              .map((item) => {
+                if (!item) return null;
+                const isBlockedByAge = item.months > ageDiagnosis.maxTermMonths;
+                return (
+                  <button
+                    key={item.months}
+                    type="button"
+                    disabled={isBlockedByAge}
+                    onClick={() => onChange({ ...loan, termMonths: item.months })}
+                    className={`py-1.5 px-2 rounded-lg border text-center transition-all ${
+                      isBlockedByAge
+                        ? 'opacity-35 bg-zinc-100 border-zinc-200 cursor-not-allowed text-zinc-400'
+                        : loan.termMonths === item.months
+                        ? 'border-zinc-900 bg-zinc-900 text-white shadow-xs cursor-pointer'
+                        : 'border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 cursor-pointer'
+                    }`}
+                  >
+                    <span className="text-xs font-semibold">{item.label}</span>
+                  </button>
+                );
+              })}
           </div>
         </div>
 
         {/* Sistema de Amortização (SAC vs PRICE) */}
-        <div>
+        <div className="md:col-span-2">
           <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
             Sistema de Amortização
           </label>
@@ -218,7 +434,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({
             <button
               type="button"
               onClick={() => onChange({ ...loan, system: 'SAC' })}
-              className={`p-2.5 rounded-lg border text-left transition-all ${
+              className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
                 loan.system === 'SAC'
                   ? 'border-zinc-900 bg-zinc-50 ring-1 ring-zinc-900 shadow-xs'
                   : 'border-zinc-200 bg-white hover:bg-zinc-50'
@@ -240,7 +456,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({
             <button
               type="button"
               onClick={() => onChange({ ...loan, system: 'PRICE' })}
-              className={`p-2.5 rounded-lg border text-left transition-all ${
+              className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
                 loan.system === 'PRICE'
                   ? 'border-zinc-900 bg-zinc-50 ring-1 ring-zinc-900 shadow-xs'
                   : 'border-zinc-200 bg-white hover:bg-zinc-50'
@@ -252,6 +468,24 @@ export const ContractForm: React.FC<ContractFormProps> = ({
               </p>
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Nota Técnica de Enquadramento CEF (Regra 80,5 anos) */}
+      <div className="mt-3.5 px-3.5 py-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-xs text-zinc-600 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-semibold text-zinc-800">Parâmetros CEF (Regra 80,5 anos):</span>
+          <span>
+            Teto: <strong className="text-zinc-900">{ageDiagnosis.maxTermMonths} meses</strong> ({ageDiagnosis.maxTermYears} anos)
+            {clientAge >= 50 && (
+              <span className="text-zinc-500 ml-1.5 font-normal">
+                • Proponente com {clientAge} anos (-{ageDiagnosis.yearsLost}a no prazo)
+              </span>
+            )}
+          </span>
+        </div>
+        <div className="text-[11px] text-zinc-500 font-medium sm:text-right shrink-0">
+          Seguro MIP: <strong className="text-zinc-800">{ageDiagnosis.mipRateFormatted}</strong> a.m.
         </div>
       </div>
 

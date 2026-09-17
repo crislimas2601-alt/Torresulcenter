@@ -21,13 +21,14 @@ import { TorresulLogo } from './TorresulLogo';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 
 const DEFAULT_LOAN: LoanInput = {
-  propertyValue: 240000,
-  downPayment: 48000,
+  propertyValue: 350000,
+  downPayment: 70000,
   termMonths: 360,
   annualInterestRate: 7.66, // Faixa 3 MCMV
   system: 'SAC',
   monthlyAdminFee: 25,
   insuranceRateMonthly: 0.025,
+  clientAge: 35,
 };
 
 const DEFAULT_EXTRA: ExtraAmortizationInput = {
@@ -42,11 +43,32 @@ export const AmortizationSuite: React.FC = () => {
   // PWA & Iframe Installation Detection
   const { isInstallable, install, isInIframe, openInNewTab } = usePWAInstall();
 
-  // Load from localStorage or defaults
+  // Load from localStorage or defaults, sanitizing any corrupted numeric values
   const [loan, setLoan] = useState<LoanInput>(() => {
     try {
-      const saved = localStorage.getItem('torresul_loan_input_v1');
-      return saved ? JSON.parse(saved) : DEFAULT_LOAN;
+      const savedStr = localStorage.getItem('torresul_loan_input_v1');
+      if (savedStr) {
+        const saved = JSON.parse(savedStr);
+        let prop = Number(saved.propertyValue);
+        // If property was corrupted by prior input bug (e.g. 35.000.000 or negative)
+        if (isNaN(prop) || prop <= 0 || prop > 5000000) {
+          prop = 350000;
+        }
+        let down = Number(saved.downPayment);
+        if (isNaN(down) || down < 0 || down > prop || down > 5000000) {
+          down = Math.round(prop * 0.20);
+        }
+        return {
+          ...DEFAULT_LOAN,
+          ...saved,
+          propertyValue: prop,
+          downPayment: down,
+          termMonths: Number(saved.termMonths) > 0 ? Number(saved.termMonths) : 360,
+          annualInterestRate: Number(saved.annualInterestRate) > 0 ? Number(saved.annualInterestRate) : 7.66,
+          clientAge: Number(saved.clientAge) > 0 ? Number(saved.clientAge) : 35,
+        };
+      }
+      return DEFAULT_LOAN;
     } catch {
       return DEFAULT_LOAN;
     }

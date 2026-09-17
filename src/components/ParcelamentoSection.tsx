@@ -33,7 +33,7 @@ export const ParcelamentoSection: React.FC<ParcelamentoSectionProps> = ({
       jurosAoMes: 1.0,
       quantidadeParcelas: 12,
       dataVencimento: new Date().toISOString().split('T')[0],
-      tipoCalculo: 'price',
+      tipoCalculo: 'simples',
       temJurosDiluidos: false,
       jurosAdimplenciaDiluido: 0,
       jurosReforcosDiluido: 0,

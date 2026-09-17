@@ -229,6 +229,66 @@ export const AvalistaSection: React.FC<AvalistaSectionProps> = ({
 
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">
+                  RG
+                </label>
+                <input
+                  type="text"
+                  value={avalista.rg || ''}
+                  onChange={(e) =>
+                    onChangeAvalista({ ...avalista, rg: e.target.value })
+                  }
+                  placeholder="Número do RG"
+                  className="w-full px-3 py-2 text-sm font-medium text-slate-800 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  CPF
+                </label>
+                <input
+                  type="text"
+                  value={avalista.cpf || ''}
+                  onChange={(e) =>
+                    onChangeAvalista({ ...avalista, cpf: e.target.value })
+                  }
+                  placeholder="000.000.000-00"
+                  className="w-full px-3 py-2 text-sm font-medium text-slate-800 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Estado Civil
+                </label>
+                <input
+                  type="text"
+                  value={avalista.estadoCivil || ''}
+                  onChange={(e) =>
+                    onChangeAvalista({ ...avalista, estadoCivil: e.target.value })
+                  }
+                  placeholder="Ex: Solteiro(a), Casado(a)..."
+                  className="w-full px-3 py-2 text-sm font-medium text-slate-800 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Endereço
+                </label>
+                <input
+                  type="text"
+                  value={avalista.endereco || ''}
+                  onChange={(e) =>
+                    onChangeAvalista({ ...avalista, endereco: e.target.value })
+                  }
+                  placeholder="Rua, número, bairro, cidade - UF"
+                  className="w-full px-3 py-2 text-sm font-medium text-slate-800 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
                   E-mail
                 </label>
                 <input
@@ -257,7 +317,7 @@ export const AvalistaSection: React.FC<AvalistaSectionProps> = ({
                 />
               </div>
 
-              <div>
+              <div className="sm:col-span-2">
                 <label className="block text-xs font-medium text-slate-600 mb-1">
                   Profissão
                 </label>
