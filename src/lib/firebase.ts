@@ -17,15 +17,21 @@ import {
   onSnapshot 
 } from 'firebase/firestore';
 import { getAnalytics, isSupported } from 'firebase/analytics';
-import generatedFirebaseConfig from '../../firebase-applet-config.json';
-
-// Configuração do projeto Firebase
-export const firebaseConfig = generatedFirebaseConfig;
+// Configuração do projeto Firebase (torresulcenter-c527c)
+export const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyB7f0uh8ZwYIGMSvO67T4t0II4q0p3sfUk",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "torresulcenter-c527c.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "torresulcenter-c527c",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "torresulcenter-c527c.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "335861110894",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:335861110894:web:faac48a1fd745c4eacee7f",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-308EDYGLJ3",
+};
 
 // Initialize Firebase only once
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = getFirestore(app);
 
 // Initialize Firebase Analytics safely (client-side only when supported)
 export let analytics: ReturnType<typeof getAnalytics> | null = null;
