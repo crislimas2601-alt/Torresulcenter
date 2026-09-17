@@ -141,7 +141,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="font-extrabold text-xs tracking-tight text-white font-heading truncate">
-                    TORRE SUL
+                    TORRESUL
                   </span>
                   <span className="text-[9px] px-1 py-0.2 rounded bg-zinc-800 text-zinc-300 border border-zinc-700 font-bold uppercase tracking-wider">
                     Tools
