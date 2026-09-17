@@ -16,24 +16,37 @@ import {
   getDoc, 
   onSnapshot 
 } from 'firebase/firestore';
-import defaultConfig from '../../firebase-applet-config.json';
+import { getAnalytics, isSupported } from 'firebase/analytics';
 
-// Configuração do seu projeto Firebase pessoal (central-corretor-af22d)
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyApF-1NZ5UWWVg5mqhtnya52b6NC35bgBk",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "central-corretor-af22d.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "central-corretor-af22d",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "central-corretor-af22d.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "458623241640",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:458623241640:web:b95cd805cc3713efb5219d",
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-J7CL2VVT4K",
+// Configuração do projeto Firebase (torresulcenter-c527c)
+export const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyB7f0uh8ZwYIGMSvO67T4t0II4q0p3sfUk",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "torresulcenter-c527c.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "torresulcenter-c527c",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "torresulcenter-c527c.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "335861110894",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:335861110894:web:faac48a1fd745c4eacee7f",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-308EDYGLJ3",
 };
 
 // Initialize Firebase only once
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Initialize Firebase Analytics safely (client-side only when supported)
+export let analytics: ReturnType<typeof getAnalytics> | null = null;
+if (typeof window !== 'undefined') {
+  isSupported().then((supported) => {
+    if (supported) {
+      analytics = getAnalytics(app);
+    }
+  }).catch(() => {
+    // Analytics not supported in this environment
+  });
+}
+
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   prompt: 'select_account'
