@@ -162,8 +162,9 @@ export default function App() {
       setIsSyncing(true);
       await saveDealsToCloud(user, deals);
       showToast('Nuvem atualizada com sucesso!');
-    } catch (err) {
-      showToast('Erro ao sincronizar com a nuvem.');
+    } catch (err: any) {
+      console.error(err);
+      showToast(`Erro ao sincronizar: ${err.message || 'Verifique as permissões do Firebase'}`);
     } finally {
       setIsSyncing(false);
     }
