@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Top Roof Spire -->
+  <path d="M 100 16 L 80 42 L 80 56 L 100 43.6 Z" fill="#8E1C1C" />
+  <path d="M 100 16 L 100 43.6 L 120 56 L 120 42 Z" fill="#DC2626" />
+
+  <!-- Middle Section -->
+  <path d="M 73 65.3 L 84 58.5 L 84 100.5 L 73 107.3 Z" fill="#8E1C1C" />
+  <path d="M 87 56.7 L 100 48.6 L 100 90.6 L 87 98.7 Z" fill="#8E1C1C" />
+  <path d="M 100 48.6 L 113 56.7 L 113 98.7 L 100 90.6 Z" fill="#DC2626" />
+  <path d="M 116 58.5 L 127 65.3 L 127 107.3 L 116 100.5 Z" fill="#DC2626" />
+
+  <!-- Base Section -->
+  <path d="M 58 121.6 L 100 95.6 L 100 115.6 L 56.5 142.6 Z" fill="#8E1C1C" />
+  <path d="M 100 95.6 L 142 121.6 L 143.5 142.6 L 100 115.6 Z" fill="#DC2626" />
+
+  <path d="M 56 147.9 L 100 120.6 L 100 140.6 L 54.5 168.8 Z" fill="#8E1C1C" />
+  <path d="M 100 120.6 L 144 147.9 L 145.5 168.8 L 100 140.6 Z" fill="#DC2626" />
+
+  <path d="M 54 174.1 L 100 145.6 L 100 176 L 52.5 176 Z" fill="#8E1C1C" />
+  <path d="M 100 145.6 L 146 174.1 L 147.5 176 L 100 176 Z" fill="#DC2626" />
+</svg>

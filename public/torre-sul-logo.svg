@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Top Roof Spire -->
+  <path d="M100 16 L79 40 L79 58 L100 44 Z" fill="#8E1C1C" />
+  <path d="M100 16 L100 44 L121 58 L121 40 Z" fill="#DC2626" />
+
+  <!-- Middle Columns -->
+  <!-- Left Pillar -->
+  <path d="M72 67 L84 59 L84 99 L72 107 Z" fill="#8E1C1C" />
+  <!-- Center Pillar Left -->
+  <path d="M87 57 L100 48 L100 88 L87 97 Z" fill="#8E1C1C" />
+  <!-- Center Pillar Right -->
+  <path d="M100 48 L113 57 L113 97 L100 88 Z" fill="#DC2626" />
+  <!-- Right Pillar -->
+  <path d="M116 59 L128 67 L128 107 L116 99 Z" fill="#DC2626" />
+
+  <!-- Base Tier 1 (Top) -->
+  <path d="M57.5 119 L100 91 L100 109 L56.5 137 Z" fill="#8E1C1C" />
+  <path d="M100 91 L142.5 119 L143.5 137 L100 109 Z" fill="#DC2626" />
+
+  <!-- Base Tier 2 (Middle) -->
+  <path d="M56 142 L100 114 L100 132 L54.5 160 Z" fill="#8E1C1C" />
+  <path d="M100 114 L144 142 L145.5 160 L100 132 Z" fill="#DC2626" />
+
+  <!-- Base Tier 3 (Bottom with flat base) -->
+  <path d="M54 165 L100 137 L100 176 L52.5 176 Z" fill="#8E1C1C" />
+  <path d="M100 137 L146 165 L147.5 176 L100 176 Z" fill="#DC2626" />
+</svg>

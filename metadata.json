@@ -1,0 +1,8 @@
+{
+  "name": "Torresulcenter",
+  "description": "Gestão financeira pessoal para corretores de imóveis: contratos fechados, cálculo de comissões e bônus, previsão de fluxo de caixa para os próximos meses e histórico de recebíveis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
