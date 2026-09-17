@@ -115,13 +115,8 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
             <div className="text-xl font-bold text-white">
               {formatBRL(totals.totalNegociacao)}
             </div>
-            <div className="text-[11px] text-slate-300 mt-0.5 flex items-center justify-between">
-              <span>Com juros, imp. e desc. aval.</span>
-              {proposal.temAdimplencia && proposal.valorAdimplencia > 0 && (
-                <span className="text-red-400 font-bold">
-                  +{formatBRL(proposal.valorAdimplencia)} desc.
-                </span>
-              )}
+            <div className="text-[11px] text-slate-300 mt-0.5 flex flex-col gap-0.5">
+              <span>Soma de imóvel, juros e desc. avaliado</span>
             </div>
           </div>
         </div>

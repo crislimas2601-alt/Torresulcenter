@@ -45,7 +45,15 @@ export function generateContractText(proposal: ProposalData): string {
   }
 
   // 3. Valor total da negociação
-  lines.push(`Valor total da negociação (com juros e desconto avaliado): ${formatBRL(totals.totalNegociacao)}`);
+  const totalJuros = totals.totalEntradaComJuros - totals.totalEntradaSemJuros;
+  const valorDescontoAvaliado = proposal.temAdimplencia ? round2(proposal.valorAdimplencia || 0) : 0;
+  const somaJurosEDesconto = round2(totalJuros + valorDescontoAvaliado);
+  
+  if (somaJurosEDesconto > 0) {
+    lines.push(`Valor total da negociação (com ${formatBRL(somaJurosEDesconto)} de juros e desc. avaliado): ${formatBRL(totals.totalNegociacao)}`);
+  } else {
+    lines.push(`Valor total da negociação: ${formatBRL(totals.totalNegociacao)}`);
+  }
   lines.push('');
 
   // 4. Valor total da entrada

@@ -129,8 +129,8 @@ export function calculateProposalTotals(proposal: ProposalData): ProposalTotals 
   const totalNegociacao = round2(totalEntradaComJuros + financiamento + fgts + subsidio + adimplencia + impostoAdimplencia + jurosAdimplenciaNoTotal);
 
   // Diferença em relação ao valor do imóvel (positivo = falta valor; negativo = excedeu)
-  // Como o imposto da adimplência vai "no valor do contrato", o valorImovel deve teoricamente ser acrescido desse imposto na comparação
-  const diferencaImovel = round2((valorImovel + impostoAdimplencia) - (totalNominal + adimplencia));
+  // O valor nominal (Entrada + Financiamento) deve cobrir o valor do contrato (valorImovel + impostos)
+  const diferencaImovel = round2((valorImovel + impostoAdimplencia) - totalNominal);
 
   return {
     totalEntradaSemJuros,

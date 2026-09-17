@@ -95,8 +95,12 @@ export const FloatingBalancePill: React.FC<FloatingBalancePillProps> = ({
             )}
             <div className="h-px bg-slate-200 my-1" />
             <div className="flex justify-between font-bold text-slate-900 text-sm">
-              <span>Soma Atual:</span>
+              <span>Valor Padrão (Sem Juros/Desc):</span>
               <span>{formatBRL(totalNominal)}</span>
+            </div>
+            <div className="flex justify-between font-bold text-red-600 text-sm pt-0.5">
+              <span>Total c/ Juros + Desc Avaliado:</span>
+              <span>{formatBRL(totals.totalNegociacao)}</span>
             </div>
           </div>
 
