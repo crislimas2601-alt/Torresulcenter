@@ -24,13 +24,13 @@ import { getAnalytics, isSupported } from 'firebase/analytics';
 import firebaseAppletConfig from '../../firebase-applet-config.json';
 
 // Configuração do projeto Firebase com suporte transparente tanto para o AI Studio quanto para Vercel / ambiente externo
-const activeApiKey = import.meta.env.VITE_FIREBASE_API_KEY || firebaseAppletConfig.apiKey;
-const activeAuthDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseAppletConfig.authDomain;
-const activeProjectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseAppletConfig.projectId;
-const activeStorageBucket = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseAppletConfig.storageBucket;
-const activeMessagingSenderId = import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseAppletConfig.messagingSenderId;
-const activeAppId = import.meta.env.VITE_FIREBASE_APP_ID || firebaseAppletConfig.appId;
-const activeMeasurementId = import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || firebaseAppletConfig.measurementId;
+const activeApiKey = import.meta.env.VITE_FIREBASE_API_KEY || (firebaseAppletConfig as any)?.apiKey || "AIzaSyAhDV0XPf2bH30B84Wr7fjkoNF84iiE62U";
+const activeAuthDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || (firebaseAppletConfig as any)?.authDomain || "torresulcenter-c527c.firebaseapp.com";
+const activeProjectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || (firebaseAppletConfig as any)?.projectId || "torresulcenter-c527c";
+const activeStorageBucket = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || (firebaseAppletConfig as any)?.storageBucket || "torresulcenter-c527c.firebasestorage.app";
+const activeMessagingSenderId = import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || (firebaseAppletConfig as any)?.messagingSenderId || "335861110894";
+const activeAppId = import.meta.env.VITE_FIREBASE_APP_ID || (firebaseAppletConfig as any)?.appId || "1:335861110894:web:9661cca78a18ddf4acee7f";
+const activeMeasurementId = import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || (firebaseAppletConfig as any)?.measurementId || "";
 
 export const firebaseConfig = {
   apiKey: activeApiKey,
