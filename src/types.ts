@@ -9,6 +9,8 @@ export type PropertyType =
 
 export type DealStatus = 'em_andamento' | 'concluido' | 'distrato';
 
+export type DealCategory = 'venda_direta' | 'agenciamento';
+
 export type InstallmentStatus = 'pendente' | 'recebido' | 'atrasado';
 
 export interface Installment {
@@ -30,10 +32,12 @@ export interface ContractDeal {
   id: string;
   propertyTitle: string;
   propertyType: PropertyType;
+  dealCategory?: DealCategory; // 'venda_direta' | 'agenciamento'
   clientName: string;
   clientPhone?: string;
   developerOrAgency: string; // Ex: 'Construtora Cyrela', 'Imobiliária Nova', 'Autônomo'
   contractDate: string; // YYYY-MM-DD
+  signatureDate?: string; // YYYY-MM-DD (Data oficial de fechamento / assinatura)
   propertyValue: number; // VGV do imóvel em R$
   grossCommissionPercent: number; // Ex: 5 (%)
   grossCommissionValue: number; // Ex: R$ 50.000

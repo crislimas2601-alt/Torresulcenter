@@ -17,10 +17,11 @@ import {
   saveDeals, 
   resetToSampleDeals, 
   clearAllDeals, 
-  calculateFinancialStats 
+  calculateFinancialStats,
+  sanitizeDeveloperName
 } from './utils/storage';
 import { loadProposals } from './utils/proposalStorage';
-import { formatCurrency, formatDateBR, getPropertyTypeLabel } from './utils/formatters';
+import { formatCurrency, formatDateBR, getPropertyTypeLabel, getDealCategoryLabel } from './utils/formatters';
 import { Header } from './components/Header';
 import { MetricCards } from './components/MetricCards';
 import { CashFlowForecast } from './components/CashFlowForecast';
@@ -87,8 +88,18 @@ export default function App() {
           const cloudDeals = await loadDealsFromCloud(currentUser);
           
           if (cloudDeals && cloudDeals.length > 0) {
-            setDeals(cloudDeals);
-            saveDeals(cloudDeals);
+            const sanitizedCloudDeals = cloudDeals.map((deal) => ({
+              ...deal,
+              developerOrAgency: sanitizeDeveloperName(deal.developerOrAgency),
+            }));
+            const hadChanges = sanitizedCloudDeals.some(
+              (d, i) => d.developerOrAgency !== cloudDeals[i]?.developerOrAgency
+            );
+            setDeals(sanitizedCloudDeals);
+            saveDeals(sanitizedCloudDeals);
+            if (hadChanges) {
+              saveDealsToCloud(currentUser, sanitizedCloudDeals).catch(console.error);
+            }
             showToast(`Conectado como ${currentUser.displayName || currentUser.email}! Dados sincronizados.`);
           } else {
             // First time login for this user: save current local deals to their new cloud database
@@ -102,8 +113,12 @@ export default function App() {
           // Subscribe to real-time updates from other tabs/devices
           unsubscribeSnapshot = subscribeToUserCloud(currentUser, (remoteDeals) => {
             if (!isInitialCloudLoad.current) {
-              setDeals(remoteDeals);
-              saveDeals(remoteDeals);
+              const sanitizedRemote = remoteDeals.map((deal) => ({
+                ...deal,
+                developerOrAgency: sanitizeDeveloperName(deal.developerOrAgency),
+              }));
+              setDeals(sanitizedRemote);
+              saveDeals(sanitizedRemote);
             }
             isInitialCloudLoad.current = false;
           });
@@ -239,10 +254,12 @@ export default function App() {
       id: `deal-${Date.now()}`,
       propertyTitle: dealData.propertyTitle || 'Novo Imóvel',
       propertyType: dealData.propertyType || 'apartamento',
+      dealCategory: 'venda_direta',
       clientName: dealData.clientName || 'Cliente Proposta',
       clientPhone: dealData.clientPhone || '',
-      developerOrAgency: dealData.developerOrAgency || 'Torre Sul Imobiliária',
+      developerOrAgency: sanitizeDeveloperName(dealData.developerOrAgency || ''),
       contractDate: new Date().toISOString().slice(0, 10),
+      signatureDate: new Date().toISOString().slice(0, 10),
       propertyValue: propVal,
       grossCommissionPercent: defaultGrossPercent,
       grossCommissionValue: grossVal,
@@ -308,6 +325,8 @@ export default function App() {
 
     const headers = [
       'ID Contrato',
+      'Tipo de Operação',
+      'Data de Assinatura / Fechamento',
       'Imóvel',
       'Tipo de Imóvel',
       'Cliente (Comprador)',
@@ -331,6 +350,8 @@ export default function App() {
       const paidCount = d.installments.filter((i) => i.status === 'recebido').length;
       return [
         `"${d.id}"`,
+        `"${getDealCategoryLabel(d.dealCategory)}"`,
+        `"${formatDateBR(d.signatureDate || d.contractDate)}"`,
         `"${d.propertyTitle.replace(/"/g, '""')}"`,
         `"${getPropertyTypeLabel(d.propertyType)}"`,
         `"${d.clientName.replace(/"/g, '""')}"`,

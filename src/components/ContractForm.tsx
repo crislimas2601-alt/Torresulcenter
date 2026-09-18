@@ -9,9 +9,14 @@ import {
   ShieldCheck,
   TrendingDown,
   Calendar,
+  Wallet,
+  CheckCircle2,
+  AlertCircle,
+  SlidersHorizontal,
+  ArrowRight,
 } from 'lucide-react';
 import { LoanInput, SimulationResult } from '../types';
-import { MCMV_BANDS, runSimulation } from '../utils/financialCalculations';
+import { MCMV_BANDS, runSimulation, calculateIncomeDiagnosis } from '../utils/financialCalculations';
 import { calculateMaxTermForAge, getAgeFinancingDiagnosis } from '../utils/mcmvAgeRules';
 import { formatCurrency, parseBRLInput, formatBRLNumber } from '../utils/formatters';
 
@@ -23,6 +28,7 @@ interface ContractFormProps {
 }
 
 const PROPERTY_PRESETS = [200000, 260000, 300000, 350000, 420000];
+const INCOME_PRESETS = [3000, 4500, 5000, 6500, 8000];
 
 export const ContractForm: React.FC<ContractFormProps> = ({
   loan,
@@ -39,8 +45,12 @@ export const ContractForm: React.FC<ContractFormProps> = ({
   const [downPaymentStr, setDownPaymentStr] = useState<string>(
     loan.downPayment ? formatBRLNumber(loan.downPayment) : ''
   );
+  const [incomeStr, setIncomeStr] = useState<string>(
+    loan.grossIncome ? formatBRLNumber(loan.grossIncome) : ''
+  );
   const [isPropFocused, setIsPropFocused] = useState(false);
   const [isDownFocused, setIsDownFocused] = useState(false);
+  const [isIncomeFocused, setIsIncomeFocused] = useState(false);
 
   useEffect(() => {
     if (!isPropFocused) {
@@ -53,6 +63,12 @@ export const ContractForm: React.FC<ContractFormProps> = ({
       setDownPaymentStr(loan.downPayment ? formatBRLNumber(loan.downPayment) : '');
     }
   }, [loan.downPayment, isDownFocused]);
+
+  useEffect(() => {
+    if (!isIncomeFocused) {
+      setIncomeStr(loan.grossIncome ? formatBRLNumber(loan.grossIncome) : '');
+    }
+  }, [loan.grossIncome, isIncomeFocused]);
 
   const financedAmount = Math.max(0, loan.propertyValue - loan.downPayment);
   const downPaymentPercent = loan.propertyValue > 0 ? (loan.downPayment / loan.propertyValue) * 100 : 0;
@@ -73,8 +89,10 @@ export const ContractForm: React.FC<ContractFormProps> = ({
   const interestPart = schedule0?.interest || 0;
   const feesPart = schedule0?.fees || 0;
 
-  // Caixa 30% gross income rule:
+  // Caixa 30% gross income rule & Diagnosis:
   const minIncome = firstInstallment > 0 ? firstInstallment / 0.30 : 0;
+  const incomeDiagnosis = calculateIncomeDiagnosis(loan, firstInstallment);
+
   const sacMonthlyDrop =
     loan.system === 'SAC' && loan.termMonths > 1
       ? (firstInstallment - lastInstallment) / (loan.termMonths - 1)
@@ -98,6 +116,45 @@ export const ContractForm: React.FC<ContractFormProps> = ({
       clientAge: safeAge,
       termMonths: updatedTerm,
     });
+  };
+
+  const handleIncomeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    setIncomeStr(raw);
+    const parsed = parseBRLInput(raw);
+    onChange({
+      ...loan,
+      grossIncome: parsed,
+    });
+  };
+
+  const handleIncomeBlur = () => {
+    setIsIncomeFocused(false);
+    const parsed = parseBRLInput(incomeStr);
+    onChange({
+      ...loan,
+      grossIncome: parsed,
+    });
+    setIncomeStr(parsed ? formatBRLNumber(parsed) : '');
+  };
+
+  const handleIncomePresetClick = (val: number) => {
+    setIncomeStr(formatBRLNumber(val));
+    onChange({
+      ...loan,
+      grossIncome: val,
+    });
+  };
+
+  // Auto-adjust down payment to fit current client income
+  const handleAutoAdjustDownPayment = () => {
+    if (incomeDiagnosis.neededDownPayment > 0) {
+      setDownPaymentStr(formatBRLNumber(incomeDiagnosis.neededDownPayment));
+      onChange({
+        ...loan,
+        downPayment: incomeDiagnosis.neededDownPayment,
+      });
+    }
   };
 
   const handlePropertyValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -265,6 +322,51 @@ export const ContractForm: React.FC<ContractFormProps> = ({
           </div>
         </div>
 
+        {/* Renda Bruta Familiar (Comprador / Coobrigados) */}
+        <div>
+          <label className="block text-xs font-semibold text-zinc-700 mb-1.5 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <Wallet className="w-3.5 h-3.5 text-zinc-600" />
+              <span>Renda Bruta Familiar da Pessoa</span>
+            </span>
+            <span className="text-[11px] font-semibold text-zinc-500">
+              {loan.grossIncome ? formatCurrency(loan.grossIncome) : 'Ex: R$ 5.000,00'}
+            </span>
+          </label>
+          <div className="relative">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 font-medium text-sm">
+              R$
+            </span>
+            <input
+              id="gross-income-input"
+              type="text"
+              value={incomeStr}
+              onFocus={() => setIsIncomeFocused(true)}
+              onBlur={handleIncomeBlur}
+              onChange={handleIncomeChange}
+              className="w-full pl-10 pr-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-900 font-semibold text-sm focus:bg-white focus:ring-1 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition tabular-nums"
+              placeholder="Ex: 5.000,00"
+            />
+          </div>
+          {/* Quick Income Presets */}
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {INCOME_PRESETS.map((val) => (
+              <button
+                key={val}
+                type="button"
+                onClick={() => handleIncomePresetClick(val)}
+                className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition cursor-pointer ${
+                  loan.grossIncome === val
+                    ? 'bg-zinc-900 text-white shadow-xs'
+                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200/80 border border-zinc-200/80'
+                }`}
+              >
+                {formatCurrency(val)}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Idade do Proponente (Regra MCMV / Caixa) */}
         <div>
           <label className="block text-xs font-semibold text-zinc-700 mb-1.5 flex items-center justify-between">
@@ -318,11 +420,11 @@ export const ContractForm: React.FC<ContractFormProps> = ({
                   clientAge === ageVal
                     ? 'bg-zinc-900 text-white shadow-xs'
                     : ageVal >= 50
-                    ? 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200'
+                    ? 'bg-zinc-100 text-zinc-900 hover:bg-zinc-200 border border-zinc-300 font-semibold'
                     : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200/80 border border-zinc-200/80'
                 }`}
               >
-                {ageVal} anos {ageVal >= 50 && '⚠️'}
+                {ageVal} anos
               </button>
             ))}
           </div>
@@ -488,6 +590,141 @@ export const ContractForm: React.FC<ContractFormProps> = ({
           Seguro MIP: <strong className="text-zinc-800">{ageDiagnosis.mipRateFormatted}</strong> a.m.
         </div>
       </div>
+
+      {/* Diagnóstico de Enquadramento de Renda CEF / MCMV */}
+      {loan.grossIncome && loan.grossIncome > 0 ? (
+        <div className={`mt-4 p-4 rounded-xl border transition-all ${
+          incomeDiagnosis.isApproved
+            ? 'bg-white border-zinc-200 text-zinc-900 shadow-2xs'
+            : 'bg-white border-red-200 text-zinc-900 shadow-2xs'
+        }`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-zinc-100">
+            <div className="flex items-center gap-2.5">
+              {incomeDiagnosis.isApproved ? (
+                <div className="w-6 h-6 rounded-md bg-zinc-900 text-white flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                </div>
+              ) : (
+                <div className="w-6 h-6 rounded-md bg-red-600 text-white flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                </div>
+              )}
+              <div>
+                <h4 className="text-sm font-bold text-zinc-900 leading-tight">
+                  {incomeDiagnosis.isApproved
+                    ? 'Enquadramento de Renda Aprovado (Margem 30%)'
+                    : 'Comprometimento Acima da Margem Caixa (30%)'}
+                </h4>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Renda Informada: <strong className="text-zinc-800">{formatCurrency(incomeDiagnosis.income)}</strong> • Limite da 1ª Parcela: <strong className="text-zinc-800">{formatCurrency(incomeDiagnosis.maxCommitment)}/mês</strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className={`px-2.5 py-0.5 rounded text-xs font-semibold border ${
+                incomeDiagnosis.isApproved 
+                  ? 'bg-zinc-100 text-zinc-800 border-zinc-200' 
+                  : 'bg-red-50 text-red-700 border-red-200'
+              }`}>
+                {incomeDiagnosis.band.name} ({incomeDiagnosis.band.incomeRange})
+              </span>
+            </div>
+          </div>
+
+          {/* Análise de Comprometimento & Diagnóstico */}
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+            <div className="bg-zinc-50 p-2.5 rounded-lg border border-zinc-200">
+              <span className="text-[10px] uppercase font-semibold text-zinc-500 block">1ª Prestação Atual</span>
+              <span className="text-base font-bold text-zinc-900 block mt-0.5">
+                {formatCurrency(incomeDiagnosis.firstInstallment)}
+              </span>
+              <span className="text-[11px] text-zinc-500 block mt-0.5">
+                Compromete <strong>{incomeDiagnosis.commitmentPercent.toFixed(1)}%</strong> da renda
+              </span>
+            </div>
+
+            <div className="bg-zinc-50 p-2.5 rounded-lg border border-zinc-200">
+              <span className="text-[10px] uppercase font-semibold text-zinc-500 block">Renda Mínima Exigida</span>
+              <span className="text-base font-bold text-zinc-900 block mt-0.5">
+                {formatCurrency(incomeDiagnosis.requiredIncome)}
+              </span>
+              <span className="text-[11px] text-zinc-500 block mt-0.5">
+                Margem máxima Caixa de 30%
+              </span>
+            </div>
+
+            <div className="bg-zinc-50 p-2.5 rounded-lg border border-zinc-200">
+              <span className="text-[10px] uppercase font-semibold text-zinc-500 block">Diagnóstico Caixa</span>
+              <span className={`text-base font-bold block mt-0.5 ${
+                incomeDiagnosis.isApproved ? 'text-zinc-900' : 'text-red-600'
+              }`}>
+                {incomeDiagnosis.isApproved ? 'Enquadrado' : 'Excede Margem'}
+              </span>
+              <span className="text-[11px] text-zinc-500 block mt-0.5">
+                {incomeDiagnosis.isApproved ? 'Renda suficiente para aprovação' : `Excedente de ${(incomeDiagnosis.commitmentPercent - 30).toFixed(1)}%`}
+              </span>
+            </div>
+          </div>
+
+          {/* Caso NÃO ENQUADRE: Soluções para enquadramento e botão de auto-ajuste */}
+          {!incomeDiagnosis.isApproved && (
+            <div className="mt-3 pt-3 border-t border-zinc-200 space-y-2.5">
+              <p className="text-xs font-semibold text-zinc-800 leading-snug">
+                Alternativas para enquadramento do imóvel ({formatCurrency(loan.propertyValue)}):
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                {/* Opção 1: Complementar a Renda */}
+                <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-200">
+                  <span className="font-semibold text-zinc-900 block mb-1">
+                    Opção 1: Composição Familiar de Renda
+                  </span>
+                  <p className="text-zinc-600 leading-relaxed">
+                    Comprovar <strong className="text-zinc-900 font-semibold">+{formatCurrency(incomeDiagnosis.incomeGap)}/mês</strong> de renda adicional (ou compor renda até totalizar <strong>{formatCurrency(incomeDiagnosis.requiredIncome)}</strong>).
+                  </p>
+                </div>
+
+                {/* Opção 2: Aumentar Entrada / Atrelar Ajuste */}
+                <div className="bg-zinc-50 p-3 rounded-lg border border-zinc-200 flex flex-col justify-between">
+                  <div>
+                    <span className="font-semibold text-zinc-900 block mb-1">
+                      Opção 2: Ajuste da Entrada
+                    </span>
+                    <p className="text-zinc-600 leading-relaxed">
+                      Aporte de <strong className="text-zinc-900 font-semibold">+{formatCurrency(incomeDiagnosis.downPaymentGap)}</strong> na entrada (passando de {formatCurrency(loan.downPayment)} para <strong>{formatCurrency(incomeDiagnosis.neededDownPayment)}</strong>).
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAutoAdjustDownPayment}
+                    className="mt-2.5 w-full py-2 px-3 bg-red-600 hover:bg-red-700 active:scale-98 text-white font-semibold text-xs rounded-lg transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                    <span>Ajustar Entrada para {formatCurrency(incomeDiagnosis.neededDownPayment)}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="mt-4 p-3.5 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-600 text-xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Info className="w-4 h-4 text-zinc-500 shrink-0" />
+            <span>
+              Informe a <strong>Renda Bruta Familiar</strong> acima para avaliar o enquadramento na margem de 30% da Caixa.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleIncomePresetClick(5000)}
+            className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-white font-semibold rounded-lg text-xs shrink-0 cursor-pointer shadow-2xs transition"
+          >
+            Testar R$ 5.000
+          </button>
+        </div>
+      )}
 
       {/* Taxas do Minha Casa Minha Vida */}
       <div className="mt-5 pt-4 border-t border-zinc-100">

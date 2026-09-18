@@ -182,8 +182,8 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
             {formatCurrency(stats.totalReceivedAllTime)}
           </div>
           <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span className="text-emerald-700 font-medium flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="text-slate-700 font-medium flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5 text-slate-600" />
               Liquidado
             </span>
             <span className="text-[11px] text-slate-400">{stats.completedContractsCount} quitados</span>
@@ -208,7 +208,7 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
           </div>
           <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
             <span className="text-[11px] text-slate-500">Campanhas extras</span>
-            <span className="text-[11px] font-semibold text-amber-700">Premiações</span>
+            <span className="text-[11px] font-semibold text-slate-700">Premiações</span>
           </div>
         </div>
 

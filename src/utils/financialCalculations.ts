@@ -1,12 +1,95 @@
 import { LoanInput, ExtraAmortizationInput, SimulationResult, SimulationScheduleRow } from '../types';
 import { getMIPInsuranceRateMonthly } from './mcmvAgeRules';
 
-export const MCMV_BANDS = [
-  { id: 1, name: 'Faixa 1', defaultRate: 4.25, incomeRange: 'Até R$ 2.640' },
-  { id: 2, name: 'Faixa 2', defaultRate: 5.50, incomeRange: 'R$ 2.640 a R$ 4.400' },
-  { id: 3, name: 'Faixa 3', defaultRate: 7.66, incomeRange: 'R$ 4.400 a R$ 8.000' },
-  { id: 4, name: 'SBPE', defaultRate: 9.99, incomeRange: 'Acima de R$ 8.000' },
+export interface MCMVBandInfo {
+  id: number;
+  name: string;
+  defaultRate: number;
+  incomeRange: string;
+  minIncome: number;
+  maxIncome: number;
+  badgeColor: string;
+}
+
+export const MCMV_BANDS: MCMVBandInfo[] = [
+  { id: 1, name: 'Faixa 1', defaultRate: 4.25, incomeRange: 'Até R$ 2.850', minIncome: 0, maxIncome: 2850, badgeColor: 'bg-zinc-100 text-zinc-800 border-zinc-200' },
+  { id: 2, name: 'Faixa 2', defaultRate: 5.50, incomeRange: 'R$ 2.850 a R$ 4.700', minIncome: 2850.01, maxIncome: 4700, badgeColor: 'bg-zinc-100 text-zinc-800 border-zinc-200' },
+  { id: 3, name: 'Faixa 3', defaultRate: 7.66, incomeRange: 'R$ 4.700 a R$ 8.600', minIncome: 4700.01, maxIncome: 8600, badgeColor: 'bg-zinc-100 text-zinc-800 border-zinc-200' },
+  { id: 4, name: 'SBPE', defaultRate: 9.99, incomeRange: 'Acima de R$ 8.600', minIncome: 8600.01, maxIncome: 9999999, badgeColor: 'bg-zinc-100 text-zinc-800 border-zinc-200' },
 ];
+
+/**
+ * Identify MCMV band based on client gross monthly family income
+ */
+export function getMCMVBandByIncome(income: number): MCMVBandInfo {
+  const safeIncome = Math.max(0, Number(income) || 0);
+  if (safeIncome <= 2850) return MCMV_BANDS[0];
+  if (safeIncome <= 4700) return MCMV_BANDS[1];
+  if (safeIncome <= 8600) return MCMV_BANDS[2];
+  return MCMV_BANDS[3];
+}
+
+export interface IncomeDiagnosis {
+  income: number;
+  firstInstallment: number;
+  maxCommitment: number; // 30% da renda bruta
+  commitmentPercent: number;
+  isApproved: boolean;
+  requiredIncome: number; // Renda mínima para pagar a parcela atual
+  incomeGap: number; // Quanto falta na renda para aprovar
+  neededDownPayment: number; // Entrada total necessária para parcela caber na renda atual
+  downPaymentGap: number; // Quanto falta na entrada para fechar a conta
+  band: MCMVBandInfo;
+}
+
+/**
+ * Diagnoses whether the client's income fits the Caixa 30% commitment rule
+ * and calculates exact gap for income or down payment to close the deal.
+ */
+export function calculateIncomeDiagnosis(
+  loan: LoanInput,
+  firstInstallment: number
+): IncomeDiagnosis {
+  const income = Math.max(0, Number(loan.grossIncome) || 0);
+  const band = getMCMVBandByIncome(income);
+  const maxCommitment = income * 0.30;
+  const safeFirstInstallment = Math.max(0, Number(firstInstallment) || 0);
+
+  const commitmentPercent = income > 0 ? (safeFirstInstallment / income) * 100 : 0;
+  const isApproved = income > 0 && safeFirstInstallment <= maxCommitment + 1.0; // tolerância de R$ 1
+
+  const requiredIncome = safeFirstInstallment > 0 ? Math.ceil(safeFirstInstallment / 0.30) : 0;
+  const incomeGap = Math.max(0, requiredIncome - income);
+
+  // Cálculo da entrada necessária para a parcela caber na renda informada
+  let neededDownPayment = loan.downPayment;
+  let downPaymentGap = 0;
+
+  if (!isApproved && income > 0 && safeFirstInstallment > 0) {
+    const currentFinanced = Math.max(0, loan.propertyValue - loan.downPayment);
+    if (currentFinanced > 0) {
+      // Proporção do financiamento que a margem suporta
+      // Parcela é aproximadamente linear com o saldo financiado
+      const targetRatio = Math.max(0, maxCommitment / safeFirstInstallment);
+      const maxFinancedSupported = Math.floor(currentFinanced * targetRatio);
+      neededDownPayment = Math.max(0, Math.min(loan.propertyValue, loan.propertyValue - maxFinancedSupported));
+      downPaymentGap = Math.max(0, neededDownPayment - loan.downPayment);
+    }
+  }
+
+  return {
+    income,
+    firstInstallment: safeFirstInstallment,
+    maxCommitment,
+    commitmentPercent,
+    isApproved,
+    requiredIncome,
+    incomeGap,
+    neededDownPayment,
+    downPaymentGap,
+    band,
+  };
+}
 
 export function getMonthlyRate(annualRatePercent: number): number {
   return (annualRatePercent / 100) / 12;

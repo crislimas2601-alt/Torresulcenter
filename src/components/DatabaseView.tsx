@@ -30,6 +30,7 @@ import {
   HardDrive
 } from 'lucide-react';
 import { ContractDeal, Installment, PropertyType, DealStatus } from '../types';
+import { sanitizeDeveloperName } from '../utils/storage';
 
 interface DatabaseViewProps {
   deals: ContractDeal[];
@@ -56,11 +57,14 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
 }) => {
   // State for search and filters
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all'); // 'all' | 'venda_direta' | 'agenciamento'
+  const [startDate, setStartDate] = useState<string>(''); // YYYY-MM-DD
+  const [endDate, setEndDate] = useState<string>(''); // YYYY-MM-DD
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedPaymentState, setSelectedPaymentState] = useState<string>('all');
   const [selectedDeveloper, setSelectedDeveloper] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'value-desc' | 'commission-desc' | 'title-asc'>('date-desc');
+  const [sortBy, setSortBy] = useState<'signature-desc' | 'signature-asc' | 'date-desc' | 'date-asc' | 'value-desc' | 'commission-desc' | 'title-asc'>('signature-desc');
   
   // Expanded row tracking
   const [expandedDealIds, setExpandedDealIds] = useState<Set<string>>(new Set());
@@ -112,8 +116,9 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
   const uniqueDevelopers = useMemo(() => {
     const devs = new Set<string>();
     deals.forEach((d) => {
-      if (d.developerOrAgency?.trim()) {
-        devs.add(d.developerOrAgency.trim());
+      const cleanDev = sanitizeDeveloperName(d.developerOrAgency);
+      if (cleanDev) {
+        devs.add(cleanDev);
       }
     });
     return Array.from(devs).sort();
@@ -129,9 +134,22 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
     let totalPending = 0;
     let totalInstallmentsCount = 0;
     let receivedInstallmentsCount = 0;
+    let totalDirectSalesCount = 0;
+    let totalAgencyCount = 0;
+    let totalDirectSalesVgv = 0;
+    let totalAgencyVgv = 0;
     const clients = new Set<string>();
 
     deals.forEach((deal) => {
+      const isAgency = deal.dealCategory === 'agenciamento';
+      if (isAgency) {
+        totalAgencyCount += 1;
+        totalAgencyVgv += deal.propertyValue || 0;
+      } else {
+        totalDirectSalesCount += 1;
+        totalDirectSalesVgv += deal.propertyValue || 0;
+      }
+
       totalVgv += deal.propertyValue || 0;
       totalNetCommission += deal.brokerNetCommission || 0;
       totalBonuses += deal.bonusAmount || 0;
@@ -163,6 +181,10 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
       receivedInstallmentsCount,
       uniqueClientsCount: clients.size,
       completionPercent,
+      totalDirectSalesCount,
+      totalAgencyCount,
+      totalDirectSalesVgv,
+      totalAgencyVgv,
     };
   }, [deals]);
 
@@ -183,6 +205,22 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
           if (!matchTitle && !matchClient && !matchDev && !matchPhone && !matchNotes && !matchBonus && !matchId) {
             return false;
           }
+        }
+
+        // Deal category (Venda Direta vs Agenciamento)
+        if (selectedCategory !== 'all') {
+          const isAgency = deal.dealCategory === 'agenciamento';
+          if (selectedCategory === 'agenciamento' && !isAgency) return false;
+          if (selectedCategory === 'venda_direta' && isAgency) return false;
+        }
+
+        // Date period filter (Signature / Closing date)
+        const signDate = deal.signatureDate || deal.contractDate;
+        if (startDate && signDate < startDate) {
+          return false;
+        }
+        if (endDate && signDate > endDate) {
+          return false;
         }
 
         // Property type
@@ -212,6 +250,16 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
         return true;
       })
       .sort((a, b) => {
+        if (sortBy === 'signature-desc') {
+          const dateA = a.signatureDate || a.contractDate;
+          const dateB = b.signatureDate || b.contractDate;
+          return new Date(dateB).getTime() - new Date(dateA).getTime();
+        }
+        if (sortBy === 'signature-asc') {
+          const dateA = a.signatureDate || a.contractDate;
+          const dateB = b.signatureDate || b.contractDate;
+          return new Date(dateA).getTime() - new Date(dateB).getTime();
+        }
         if (sortBy === 'date-desc') {
           return new Date(b.contractDate).getTime() - new Date(a.contractDate).getTime();
         }
@@ -229,7 +277,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
         }
         return 0;
       });
-  }, [deals, searchTerm, selectedType, selectedStatus, selectedDeveloper, selectedPaymentState, sortBy]);
+  }, [deals, searchTerm, selectedCategory, startDate, endDate, selectedType, selectedStatus, selectedDeveloper, selectedPaymentState, sortBy]);
 
   // Subtotal for filtered results
   const filteredSubtotals = useMemo(() => {
@@ -237,8 +285,21 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
     let subtotalCommission = 0;
     let subtotalReceived = 0;
     let subtotalPending = 0;
+    let filteredDirectCount = 0;
+    let filteredAgencyCount = 0;
+    let filteredDirectVgv = 0;
+    let filteredAgencyVgv = 0;
 
     filteredDeals.forEach((deal) => {
+      const isAgency = deal.dealCategory === 'agenciamento';
+      if (isAgency) {
+        filteredAgencyCount += 1;
+        filteredAgencyVgv += deal.propertyValue || 0;
+      } else {
+        filteredDirectCount += 1;
+        filteredDirectVgv += deal.propertyValue || 0;
+      }
+
       subtotalVgv += deal.propertyValue || 0;
       subtotalCommission += deal.totalBrokerReceivable || 0;
       deal.installments.forEach((inst) => {
@@ -255,18 +316,42 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
       subtotalCommission,
       subtotalReceived,
       subtotalPending,
+      filteredDirectCount,
+      filteredAgencyCount,
+      filteredDirectVgv,
+      filteredAgencyVgv,
     };
   }, [filteredDeals]);
 
-  const hasActiveFilters = searchTerm !== '' || selectedType !== 'all' || selectedStatus !== 'all' || selectedDeveloper !== 'all' || selectedPaymentState !== 'all';
+  const hasActiveFilters = searchTerm !== '' || selectedCategory !== 'all' || startDate !== '' || endDate !== '' || selectedType !== 'all' || selectedStatus !== 'all' || selectedDeveloper !== 'all' || selectedPaymentState !== 'all';
 
   const resetFilters = () => {
     setSearchTerm('');
+    setSelectedCategory('all');
+    setStartDate('');
+    setEndDate('');
     setSelectedType('all');
     setSelectedStatus('all');
     setSelectedDeveloper('all');
     setSelectedPaymentState('all');
-    setSortBy('date-desc');
+    setSortBy('signature-desc');
+  };
+
+  const getDealCategoryBadge = (category?: 'venda_direta' | 'agenciamento') => {
+    if (category === 'agenciamento') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200" title="Agenciamento / Captação do Imóvel">
+          <Building2 className="w-3 h-3 text-slate-600" />
+          Agenciamento
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200/80" title="Venda Direta">
+        <Tag className="w-3 h-3 text-red-600" />
+        Venda Direta
+      </span>
+    );
   };
 
   const getStatusBadge = (status: DealStatus) => {
@@ -456,6 +541,71 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
           </div>
 
         </div>
+
+        {/* Discriminador de Operações: Vendas Diretas vs Agenciamentos */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-100">
+          <div className={`p-3.5 rounded-xl border transition-all ${
+            selectedCategory === 'venda_direta' ? 'bg-red-50/40 border-red-300 ring-1 ring-red-300' : 'bg-slate-50/70 border-slate-200'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-red-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Tag className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                    Vendas Diretas Realizadas
+                  </span>
+                  <div className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
+                    {filteredSubtotals.filteredDirectCount} <span className="text-xs font-normal text-slate-500">imóveis</span>
+                    {(startDate || endDate || selectedCategory !== 'all') && (
+                      <span className="text-[11px] font-medium text-slate-500 ml-1.5">
+                        (de {databaseStats.totalDirectSalesCount} ao total)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] text-slate-500 font-medium block">VGV Vendas</span>
+                <span className="text-sm font-bold text-slate-900">
+                  {formatCurrency(filteredSubtotals.filteredDirectVgv)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className={`p-3.5 rounded-xl border transition-all ${
+            selectedCategory === 'agenciamento' ? 'bg-slate-100/90 border-slate-400 ring-1 ring-slate-400' : 'bg-slate-50/70 border-slate-200'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-slate-800 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                    Agenciamentos / Captações
+                  </span>
+                  <div className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
+                    {filteredSubtotals.filteredAgencyCount} <span className="text-xs font-normal text-slate-500">imóveis</span>
+                    {(startDate || endDate || selectedCategory !== 'all') && (
+                      <span className="text-[11px] font-medium text-slate-500 ml-1.5">
+                        (de {databaseStats.totalAgencyCount} ao total)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] text-slate-500 font-medium block">VGV Agenciamento</span>
+                <span className="text-sm font-bold text-slate-900">
+                  {formatCurrency(filteredSubtotals.filteredAgencyVgv)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Query, Filter and Search Bar */}
@@ -472,7 +622,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar por cliente, empreendimento, construtora, telefone, notas..."
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 transition-all outline-hidden"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200 focus:border-red-600 focus:ring-1 focus:ring-red-600 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 transition-all outline-hidden"
             />
             {searchTerm && (
               <button
@@ -534,6 +684,51 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
           <div className="flex items-center gap-1.5 text-slate-500 font-medium">
             <Filter className="w-3.5 h-3.5 text-slate-400" />
             <span>Filtros:</span>
+          </div>
+
+          {/* Operation Category Filter (Venda Direta vs Agenciamento) */}
+          <select
+            id="filter-category"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-semibold focus:outline-hidden focus:border-red-600 cursor-pointer"
+          >
+            <option value="all">Todas as Operações</option>
+            <option value="venda_direta">Venda Direta</option>
+            <option value="agenciamento">Agenciamento (Captação)</option>
+          </select>
+
+          {/* Date Period Filter (Período de Assinatura / Fechamento) */}
+          <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 border border-slate-200 rounded-lg">
+            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="text-[11px] text-slate-500 font-medium">Fechamento:</span>
+            <input
+              id="filter-start-date"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="bg-transparent text-slate-800 font-medium text-xs outline-none cursor-pointer"
+              title="Data inicial de assinatura/fechamento"
+            />
+            <span className="text-slate-400 text-xs">até</span>
+            <input
+              id="filter-end-date"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="bg-transparent text-slate-800 font-medium text-xs outline-none cursor-pointer"
+              title="Data final de assinatura/fechamento"
+            />
+            {(startDate || endDate) && (
+              <button
+                type="button"
+                onClick={() => { setStartDate(''); setEndDate(''); }}
+                className="text-slate-400 hover:text-slate-600 p-0.5 ml-1"
+                title="Limpar período de datas"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
           </div>
 
           {/* Type Filter */}
@@ -602,8 +797,10 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
               onChange={(e) => setSortBy(e.target.value as any)}
               className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-medium focus:outline-hidden focus:border-blue-500 cursor-pointer"
             >
-              <option value="date-desc">Data (Mais recente)</option>
-              <option value="date-asc">Data (Mais antiga)</option>
+              <option value="signature-desc">Assinatura (Mais recente)</option>
+              <option value="signature-asc">Assinatura (Mais antiga)</option>
+              <option value="date-desc">Data Contrato (Mais recente)</option>
+              <option value="date-asc">Data Contrato (Mais antiga)</option>
               <option value="value-desc">Maior VGV</option>
               <option value="commission-desc">Maior Comissão</option>
               <option value="title-asc">Imóvel (A-Z)</option>
@@ -641,7 +838,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
           <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
             <button
               onClick={onOpenNewDeal}
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-2 cursor-pointer"
+              className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Cadastrar Primeiro Contrato</span>
@@ -683,7 +880,8 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
               <thead>
                 <tr className="bg-slate-100/90 text-slate-600 font-semibold uppercase tracking-wider text-[11px] border-b border-slate-200">
                   <th className="py-3 px-3 w-10 text-center">#</th>
-                  <th className="py-3 px-3">Data Contrato</th>
+                  <th className="py-3 px-3">Operação</th>
+                  <th className="py-3 px-3">Fechamento / Assinatura</th>
                   <th className="py-3 px-3">Imóvel & Construtora</th>
                   <th className="py-3 px-3">Cliente Comprador</th>
                   <th className="py-3 px-3 text-right">VGV Imóvel</th>
@@ -712,8 +910,8 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                   return (
                     <React.Fragment key={deal.id}>
                       <tr 
-                        className={`hover:bg-blue-50/40 transition-colors ${
-                          isExpanded ? 'bg-blue-50/20' : 'even:bg-slate-50/50'
+                        className={`hover:bg-slate-50 transition-colors ${
+                          isExpanded ? 'bg-slate-50/80 font-medium' : 'even:bg-slate-50/40'
                         }`}
                       >
                         {/* Expand Button */}
@@ -724,16 +922,26 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                             title={isExpanded ? 'Ocultar parcelas' : 'Ver parcelas deste contrato'}
                           >
                             {isExpanded ? (
-                              <ChevronDown className="w-4 h-4 text-blue-600" />
+                              <ChevronDown className="w-4 h-4 text-red-600" />
                             ) : (
                               <ChevronRight className="w-4 h-4" />
                             )}
                           </button>
                         </td>
 
-                        {/* Date */}
-                        <td className="py-3 px-3 text-slate-600 whitespace-nowrap font-medium">
-                          {formatDate(deal.contractDate)}
+                        {/* Operation Category */}
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          {getDealCategoryBadge(deal.dealCategory)}
+                        </td>
+
+                        {/* Signature & Contract Date */}
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <div className="font-bold text-slate-900 text-xs">
+                            {formatDate(deal.signatureDate || deal.contractDate)}
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            {deal.signatureDate ? 'Assinado' : 'Cadastrado'}
+                          </div>
                         </td>
 
                         {/* Property */}
@@ -815,10 +1023,10 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                             if (lastReceived && lastReceived.receivedDate) {
                               return (
                                 <div className="inline-flex flex-col items-center">
-                                  <span className="font-semibold text-emerald-700 text-xs">
+                                  <span className="font-bold text-slate-900 text-xs">
                                     {formatDate(lastReceived.receivedDate)}
                                   </span>
-                                  <span className="text-[10px] text-emerald-600/70">
+                                  <span className="text-[10px] text-slate-500">
                                     {receivedInsts.length === deal.installments.length ? 'Quitado' : 'Última baixa'}
                                   </span>
                                 </div>
@@ -826,11 +1034,11 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                             } else if (nextPending) {
                               return (
                                 <div className="inline-flex flex-col items-center">
-                                  <span className="font-medium text-slate-600 text-xs">
+                                  <span className="font-medium text-slate-700 text-xs">
                                     {formatDate(nextPending.dueDate)}
                                   </span>
-                                  <span className="text-[10px] text-blue-600">
-                                    Previsto próx.
+                                  <span className="text-[10px] text-slate-400 font-medium">
+                                    Previsto
                                   </span>
                                 </div>
                               );
@@ -847,7 +1055,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                             </span>
                             <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                               <div 
-                                className="h-full bg-emerald-500 rounded-full transition-all"
+                                className="h-full bg-red-600 rounded-full transition-all"
                                 style={{
                                   width: `${deal.totalBrokerReceivable > 0 ? (totalPaid / deal.totalBrokerReceivable) * 100 : 0}%`
                                 }}
@@ -866,7 +1074,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                           <div className="flex items-center justify-center gap-1">
                             <button
                               onClick={() => onEditDeal(deal)}
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer"
                               title="Editar contrato"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
@@ -889,23 +1097,23 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                       {/* Expanded Sub-table (Installments & Contract Ledger) */}
                       {isExpanded && (
                         <tr className="bg-slate-50/90 border-y border-slate-200">
-                          <td colSpan={13} className="p-4 sm:p-5">
+                          <td colSpan={14} className="p-4 sm:p-5">
                             <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-3">
                               
                               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-2.5">
                                 <div className="flex items-center gap-2">
-                                  <Layers className="w-4 h-4 text-blue-600" />
+                                  <Layers className="w-4 h-4 text-red-600" />
                                   <span className="text-xs font-bold text-slate-900 uppercase tracking-wider font-heading">
                                     Grade de Parcelas de Comissão — {deal.propertyTitle}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-3 text-xs text-slate-500">
                                   <span>
-                                    Recebido: <strong className="text-emerald-700">{formatCurrency(totalPaid)}</strong>
+                                    Recebido: <strong className="text-slate-900 font-bold">{formatCurrency(totalPaid)}</strong>
                                   </span>
                                   <span>•</span>
                                   <span>
-                                    Saldo Aberto: <strong className="text-blue-700">{formatCurrency(totalBalance)}</strong>
+                                    Saldo Aberto: <strong className="text-red-700 font-bold">{formatCurrency(totalBalance)}</strong>
                                   </span>
                                 </div>
                               </div>
@@ -933,7 +1141,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                                         <td className="py-2 px-2.5 text-slate-800">
                                           {inst.title}
                                           {inst.isBonus && (
-                                            <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
+                                            <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-200">
                                               Bônus
                                             </span>
                                           )}
@@ -949,13 +1157,13 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                                         </td>
                                         <td className="py-2 px-2.5 text-center">
                                           {inst.status === 'recebido' ? (
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
-                                              <Check className="w-3 h-3 text-emerald-600" />
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-800 border border-slate-200">
+                                              <Check className="w-3 h-3 text-slate-700" />
                                               Recebido
                                             </span>
                                           ) : (
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">
-                                              <Clock className="w-3 h-3 text-amber-600" />
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-slate-50 text-slate-600 border border-slate-200">
+                                              <Clock className="w-3 h-3 text-slate-400" />
                                               Pendente
                                             </span>
                                           )}
@@ -966,7 +1174,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                                             className={`px-2.5 py-1 rounded-md text-xs font-semibold transition cursor-pointer ${
                                               inst.status === 'recebido'
                                                 ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                                                : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
+                                                : 'bg-red-600 hover:bg-red-700 text-white shadow-2xs'
                                             }`}
                                           >
                                             {inst.status === 'recebido' ? 'Desmarcar' : 'Dar Baixa'}
@@ -997,7 +1205,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
               {/* Table Footer Subtotals */}
               <tfoot>
                 <tr className="bg-slate-900 text-white font-bold text-xs border-t-2 border-slate-800">
-                  <td colSpan={4} className="py-3 px-4">
+                  <td colSpan={5} className="py-3 px-4">
                     Subtotal dos Registros Filtrados ({filteredDeals.length} de {deals.length})
                   </td>
                   <td className="py-3 px-3 text-right">
@@ -1007,12 +1215,12 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                   <td className="py-3 px-3 text-right">
                     {formatCurrency(filteredSubtotals.subtotalCommission)}
                   </td>
-                  <td className="py-3 px-3 text-right text-amber-300">
+                  <td className="py-3 px-3 text-right text-slate-200">
                     {filteredDeals.reduce((sum, d) => sum + (d.bonusAmount || 0), 0) > 0 
                       ? formatCurrency(filteredDeals.reduce((sum, d) => sum + (d.bonusAmount || 0), 0))
                       : '-'}
                   </td>
-                  <td className="py-3 px-4 text-right text-amber-400 bg-slate-800">
+                  <td className="py-3 px-4 text-right text-white font-extrabold bg-slate-800">
                     {formatCurrency(filteredSubtotals.subtotalCommission)}
                   </td>
                   <td colSpan={4} className="py-3 px-4 text-center text-slate-300">
@@ -1044,10 +1252,13 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                 <div>
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-                        {formatDate(deal.contractDate)} • {getPropertyTypeLabel(deal.propertyType)}
-                      </span>
-                      <h3 className="text-base font-bold text-slate-900 leading-snug mt-0.5">
+                      <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                        {getDealCategoryBadge(deal.dealCategory)}
+                        <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                          • {getPropertyTypeLabel(deal.propertyType)}
+                        </span>
+                      </div>
+                      <h3 className="text-base font-bold text-slate-900 leading-snug">
                         {deal.propertyTitle}
                       </h3>
                       {deal.developerOrAgency && (
@@ -1059,7 +1270,17 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                     {getStatusBadge(deal.status)}
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs bg-slate-50/70 px-2.5 py-1.5 rounded-lg border border-slate-100">
+                    <div className="flex items-center gap-1 text-slate-600">
+                      <Calendar className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                      <span>Fechamento / Assinatura:</span>
+                    </div>
+                    <strong className="text-slate-900 font-bold">
+                      {formatDate(deal.signatureDate || deal.contractDate)}
+                    </strong>
+                  </div>
+
+                  <div className="mt-3 space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-slate-500">Cliente Comprador:</span>
                       <strong className="text-slate-800">{deal.clientName || '-'}</strong>
@@ -1070,7 +1291,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-slate-500">Comissão Corretor ({deal.grossCommissionPercent}%):</span>
-                      <strong className="text-emerald-700 text-sm">{formatCurrency(deal.totalBrokerReceivable)}</strong>
+                      <strong className="text-slate-900 text-sm font-bold">{formatCurrency(deal.totalBrokerReceivable)}</strong>
                     </div>
                   </div>
 
@@ -1082,14 +1303,14 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                     </div>
                     <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-emerald-500 rounded-full transition-all"
+                        className="h-full bg-red-600 rounded-full transition-all"
                         style={{
                           width: `${deal.totalBrokerReceivable > 0 ? (totalPaid / deal.totalBrokerReceivable) * 100 : 0}%`
                         }}
                       />
                     </div>
                     {totalBalance > 0 && (
-                      <span className="text-[10px] text-blue-600 font-medium block mt-1 text-right">
+                      <span className="text-[10px] text-slate-500 font-medium block mt-1 text-right">
                         Restam {formatCurrency(totalBalance)}
                       </span>
                     )}
@@ -1100,14 +1321,14 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                   <button
                     onClick={() => toggleExpand(deal.id)}
-                    className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition cursor-pointer"
+                    className="text-xs font-semibold text-slate-700 hover:text-red-600 transition cursor-pointer"
                   >
                     Ver {deal.installments.length} parcelas
                   </button>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => onEditDeal(deal)}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer"
                       title="Editar"
                     >
                       <Edit3 className="w-4 h-4" />

@@ -2,15 +2,59 @@ import { ContractDeal, Installment, InstallmentStatus, FinancialStats, MonthlyFo
 
 const STORAGE_KEY = 'torre_sul_comissoes_deals_v2';
 
+/**
+ * Checks if a string is a reference to Torresul (which is the real estate agency, not a developer/construtora)
+ */
+export function isTorresulReference(value?: string | null): boolean {
+  if (!value) return false;
+  const normalized = value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\s\-_./\\]/g, '');
+
+  return (
+    normalized.includes('torresul') ||
+    normalized.includes('torresul') ||
+    normalized.includes('torresulimobiliaria') ||
+    normalized.includes('imobiliariatorresul') ||
+    normalized.includes('construtoratorresul')
+  );
+}
+
+/**
+ * Sanitizes developer / construtora field to ensure Torresul is never listed as a developer.
+ * Returns empty string or stripped developer name.
+ */
+export function sanitizeDeveloperName(developerOrAgency?: string | null): string {
+  if (!developerOrAgency) return '';
+  const trimmed = developerOrAgency.trim();
+  
+  if (isTorresulReference(trimmed)) {
+    return '';
+  }
+
+  // If there's a compound string e.g. "Rôgga / Torresul", keep only the actual developer
+  if (trimmed.includes('/') || trimmed.includes('+') || trimmed.includes(',')) {
+    const parts = trimmed.split(/[\/\+,]/).map((p) => p.trim());
+    const validParts = parts.filter((p) => !isTorresulReference(p));
+    return validParts.join(' / ').trim();
+  }
+
+  return trimmed;
+}
+
 export const INITIAL_SAMPLE_DEALS: ContractDeal[] = [
   {
     id: 'deal-1',
     propertyTitle: 'Edifício Grand Royale - Apto 142',
     propertyType: 'apartamento',
+    dealCategory: 'venda_direta',
     clientName: 'Rodrigo Medeiros e Paula Costa',
     clientPhone: '(11) 98765-4321',
-    developerOrAgency: 'Cyrela / Imobiliária Prime',
+    developerOrAgency: 'Cyrela Empreendimentos',
     contractDate: '2026-08-15',
+    signatureDate: '2026-08-15',
     propertyValue: 850000,
     grossCommissionPercent: 5,
     grossCommissionValue: 42500,
@@ -68,10 +112,12 @@ export const INITIAL_SAMPLE_DEALS: ContractDeal[] = [
     id: 'deal-2',
     propertyTitle: 'Residencial Villa Serena - Casa 12',
     propertyType: 'casa',
+    dealCategory: 'agenciamento',
     clientName: 'Dr. Fernando Albuquerque',
     clientPhone: '(11) 99123-8877',
-    developerOrAgency: 'Venda Direta / Autônomo',
+    developerOrAgency: 'Direto com Proprietário',
     contractDate: '2026-09-02',
+    signatureDate: '2026-09-02',
     propertyValue: 1400000,
     grossCommissionPercent: 6,
     grossCommissionValue: 84000,
@@ -125,10 +171,12 @@ export const INITIAL_SAMPLE_DEALS: ContractDeal[] = [
     id: 'deal-3',
     propertyTitle: 'Torre Bella Vista - Studio 408',
     propertyType: 'lancamento',
+    dealCategory: 'venda_direta',
     clientName: 'Mariana Silveira',
     clientPhone: '(11) 97654-1122',
-    developerOrAgency: 'Gafisa / House Lançamentos',
+    developerOrAgency: 'Gafisa',
     contractDate: '2026-09-05',
+    signatureDate: '2026-09-05',
     propertyValue: 390000,
     grossCommissionPercent: 4,
     grossCommissionValue: 15600,
@@ -182,10 +230,12 @@ export const INITIAL_SAMPLE_DEALS: ContractDeal[] = [
     id: 'deal-4',
     propertyTitle: 'Loteamento Terras Altas - Lote 18',
     propertyType: 'terreno',
+    dealCategory: 'agenciamento',
     clientName: 'Carlos Eduardo Vieira',
     clientPhone: '(11) 98111-2233',
-    developerOrAgency: 'Autônomo',
+    developerOrAgency: 'Direto com Proprietário',
     contractDate: '2026-07-20',
+    signatureDate: '2026-07-20',
     propertyValue: 310000,
     grossCommissionPercent: 6,
     grossCommissionValue: 18600,
@@ -216,10 +266,12 @@ export const INITIAL_SAMPLE_DEALS: ContractDeal[] = [
     id: 'deal-5',
     propertyTitle: 'Corporate Park Paulista - Sala 704',
     propertyType: 'comercial',
+    dealCategory: 'venda_direta',
     clientName: 'Advocacia Ramos & Associados',
     clientPhone: '(11) 99887-7665',
-    developerOrAgency: 'Even / Imóveis Pro',
+    developerOrAgency: 'Even Construtora',
     contractDate: '2026-09-08',
+    signatureDate: '2026-09-08',
     propertyValue: 620000,
     grossCommissionPercent: 5,
     grossCommissionValue: 31000,
@@ -280,7 +332,7 @@ export function loadDeals(): ContractDeal[] {
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      return parsed.map((deal: any, index: number) => {
+      const loadedDeals: ContractDeal[] = parsed.map((deal: any, index: number) => {
         const dealId = String(deal?.id || `deal-${index}-${Date.now()}`);
         const dealTitle = String(deal?.propertyTitle || 'Imóvel sem título');
         const propertyVal = Number(deal?.propertyValue) || 0;
@@ -341,10 +393,18 @@ export function loadDeals(): ContractDeal[] {
           }
         }
 
+        const contractDateStr = String(deal?.contractDate || deal?.signatureDate || '2026-09-10');
+        const signatureDateStr = String(deal?.signatureDate || deal?.contractDate || contractDateStr);
+        const dealCategory = deal?.dealCategory === 'agenciamento' ? 'agenciamento' : 'venda_direta';
+
+        const rawDev = deal?.developerOrAgency ? String(deal.developerOrAgency) : '';
+        const cleanDev = sanitizeDeveloperName(rawDev);
+
         return {
           id: dealId,
           propertyTitle: dealTitle,
           propertyType: deal?.propertyType || 'outro',
+          dealCategory,
           propertyValue: propertyVal,
           grossCommissionPercent: grossPercent,
           grossCommissionValue,
@@ -353,10 +413,11 @@ export function loadDeals(): ContractDeal[] {
           bonusAmount: bonusAmt,
           bonusDescription: deal?.bonusDescription ? String(deal.bonusDescription) : undefined,
           totalBrokerReceivable: totalReceivable,
-          developerOrAgency: deal?.developerOrAgency ? String(deal.developerOrAgency) : 'Autônomo',
+          developerOrAgency: cleanDev,
           clientName: deal?.clientName ? String(deal.clientName) : '',
           clientPhone: deal?.clientPhone ? String(deal.clientPhone) : undefined,
-          contractDate: String(deal?.contractDate || '2026-09-10'),
+          contractDate: contractDateStr,
+          signatureDate: signatureDateStr,
           status: deal?.status || 'em_andamento',
           notes: deal?.notes ? String(deal.notes) : undefined,
           createdAt,
@@ -364,6 +425,18 @@ export function loadDeals(): ContractDeal[] {
           installments: parsedInstallments,
         };
       });
+
+      // If any existing deals stored in localStorage had Torresul as developer, rewrite clean state
+      const hadChanges = parsed.some((rawItem: any, idx: number) => {
+        const rawDev = rawItem?.developerOrAgency ? String(rawItem.developerOrAgency) : '';
+        return rawDev !== loadedDeals[idx]?.developerOrAgency;
+      });
+
+      if (hadChanges) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(loadedDeals));
+      }
+
+      return loadedDeals;
     }
     return [];
   } catch (err) {

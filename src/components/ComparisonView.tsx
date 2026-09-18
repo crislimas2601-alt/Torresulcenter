@@ -191,14 +191,14 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
 
                 <div className="flex justify-between py-1 border-b border-zinc-100">
                   <span className="text-zinc-600">Total Pago em Juros:</span>
-                  <span className="font-bold text-emerald-700 tabular-nums">
+                  <span className="font-bold text-zinc-900 tabular-nums">
                     {formatCurrency(result.withAmortization.totalInterestPaid)}
                   </span>
                 </div>
 
                 <div className="flex justify-between py-1 border-b border-zinc-100">
                   <span className="text-zinc-600 font-semibold">Economia de Juros Líquida:</span>
-                  <span className="font-bold text-emerald-600 text-xs tabular-nums">
+                  <span className="font-bold text-red-600 text-xs tabular-nums">
                     -{formatCurrency(interestSaved)}
                   </span>
                 </div>
@@ -211,8 +211,8 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
                 </div>
               </div>
 
-              <div className="p-3 bg-emerald-50/80 rounded-lg border border-emerald-200 text-[11px] text-emerald-900 flex items-start gap-2 font-medium">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="p-3 bg-zinc-50 rounded-lg border border-zinc-200 text-[11px] text-zinc-700 flex items-start gap-2 font-medium">
+                <Check className="w-4 h-4 text-zinc-800 shrink-0 mt-0.5" />
                 <span>
                   Cada real aportado antecipadamente reduz diretamente o capital devido, desarmando o efeito dos juros sobre juros futuros.
                 </span>
@@ -228,7 +228,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
               </span>
               <div className="text-sm sm:text-base font-bold text-white mt-1">
                 Você aporta {formatCurrency(result.withAmortization.totalExtraAmortized)} e economiza{' '}
-                <span className="text-emerald-400">{formatCurrency(interestSaved)}</span> em juros bancários.
+                <span className="text-red-400 font-bold">{formatCurrency(interestSaved)}</span> em juros bancários.
               </div>
               <p className="text-xs text-zinc-400 mt-0.5">
                 Retorno imediato: cada aporte rende mais do que qualquer investimento de renda fixa convencional com segurança absoluta.
@@ -239,7 +239,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
               <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">
                 Lucro Patrimonial Real
               </span>
-              <span className="text-2xl sm:text-3xl font-bold text-emerald-400 tabular-nums">
+              <span className="text-2xl sm:text-3xl font-bold text-white tabular-nums">
                 +{formatCurrency(Math.max(0, interestSaved - result.withAmortization.totalExtraAmortized))}
               </span>
             </div>

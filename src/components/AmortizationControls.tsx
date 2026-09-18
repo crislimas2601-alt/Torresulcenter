@@ -157,14 +157,14 @@ export const AmortizationControls: React.FC<AmortizationControlsProps> = ({
 
       {/* Warning if in Reduce Installment mode */}
       {!isReduceTerm && (
-        <div className="mt-4 p-3.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="mt-4 p-3.5 rounded-lg bg-zinc-100 border border-zinc-200 text-zinc-800 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <strong>Modalidade Reduzir Parcela selecionada:</strong> O número de prestações é mantido, mas o valor mensal diminui. Para cortar anos de contrato, selecione <strong>"Eliminar Prazo"</strong>.
           </div>
           <button
             type="button"
             onClick={() => onChange({ ...extra, goalType: 'REDUCE_TERM' })}
-            className="px-3 py-1 bg-zinc-900 text-white rounded-md font-medium text-xs shrink-0 hover:bg-zinc-800 transition"
+            className="px-3 py-1 bg-zinc-900 text-white rounded-md font-medium text-xs shrink-0 hover:bg-zinc-800 transition cursor-pointer"
           >
             Mudar para Eliminar Prazo
           </button>
@@ -202,7 +202,7 @@ export const AmortizationControls: React.FC<AmortizationControlsProps> = ({
                 <span className="text-zinc-900 font-bold">
                   {formatCurrency(result.withAmortization.initialInstallment)}/mês
                 </span>{' '}
-                <span className="text-xs text-emerald-700 font-semibold">
+                <span className="text-xs text-zinc-700 font-semibold">
                   (-{formatCurrency(result.standard.initialInstallment - result.withAmortization.initialInstallment)}/mês)
                 </span>
               </span>
@@ -233,7 +233,7 @@ export const AmortizationControls: React.FC<AmortizationControlsProps> = ({
             <span className="text-[11px] font-medium text-zinc-400 block uppercase tracking-wider">
               Juros Evitados
             </span>
-            <span className="text-xl sm:text-2xl font-bold text-emerald-600 tracking-tight tabular-nums">
+            <span className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight tabular-nums">
               {formatCurrency(result.withAmortization.interestSaved)}
             </span>
           </div>

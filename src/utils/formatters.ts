@@ -79,40 +79,69 @@ export function formatCurrencyCompact(value: number): string {
 /**
  * Format date string YYYY-MM-DD to DD/MM/YYYY
  */
-export function formatDateBR(dateStr?: string): string {
-  if (!dateStr) return '-';
-  const parts = dateStr.split('-');
-  if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+export function formatDateBR(dateStr?: any): string {
+  if (!dateStr || typeof dateStr !== 'string') return '-';
+  try {
+    const cleanStr = dateStr.trim().slice(0, 10);
+    const parts = cleanStr.split('-');
+    if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return cleanStr;
+  } catch {
+    return String(dateStr || '-');
   }
-  return dateStr;
 }
 
 /**
  * Format month key YYYY-MM to readable name e.g. "Out/26"
  */
-export function formatMonthLabel(monthKey: string): string {
-  const [year, month] = monthKey.split('-');
-  const monthNamesShort = [
-    'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
-    'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
-  ];
-  const mIndex = parseInt(month, 10) - 1;
-  const shortYear = year.slice(-2);
-  return `${monthNamesShort[mIndex] || month}/${shortYear}`;
+export function formatMonthLabel(monthKey?: any): string {
+  if (!monthKey || typeof monthKey !== 'string') return '-';
+  try {
+    const parts = monthKey.trim().split('-');
+    if (parts.length < 2) return monthKey;
+    const [year, month] = parts;
+    const monthNamesShort = [
+      'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+      'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+    ];
+    const mIndex = parseInt(month, 10) - 1;
+    const shortYear = (year || '').slice(-2);
+    return `${monthNamesShort[mIndex] || month}/${shortYear}`;
+  } catch {
+    return String(monthKey || '-');
+  }
 }
 
 /**
  * Format month key YYYY-MM to full name e.g. "Outubro de 2026"
  */
-export function formatMonthFullLabel(monthKey: string): string {
-  const [year, month] = monthKey.split('-');
-  const monthNames = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-  ];
-  const mIndex = parseInt(month, 10) - 1;
-  return `${monthNames[mIndex] || month} de ${year}`;
+export function formatMonthFullLabel(monthKey?: any): string {
+  if (!monthKey || typeof monthKey !== 'string') return '-';
+  try {
+    const parts = monthKey.trim().split('-');
+    if (parts.length < 2) return monthKey;
+    const [year, month] = parts;
+    const monthNames = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+    const mIndex = parseInt(month, 10) - 1;
+    return `${monthNames[mIndex] || month} de ${year}`;
+  } catch {
+    return String(monthKey || '-');
+  }
+}
+
+/**
+ * Deal category human label
+ */
+export function getDealCategoryLabel(category?: string): string {
+  if (category === 'agenciamento') {
+    return 'Agenciamento';
+  }
+  return 'Venda Direta';
 }
 
 /**
@@ -120,11 +149,19 @@ export function formatMonthFullLabel(monthKey: string): string {
  */
 export function generateInstallmentDates(startDate: string, count: number, intervalDays: number = 30): string[] {
   const dates: string[] = [];
-  const base = new Date(startDate + 'T12:00:00');
+  let base: Date;
+  try {
+    const cleanDate = typeof startDate === 'string' && startDate.includes('-') ? startDate.slice(0, 10) : new Date().toISOString().slice(0, 10);
+    base = new Date(cleanDate + 'T12:00:00');
+    if (isNaN(base.getTime())) {
+      base = new Date();
+    }
+  } catch {
+    base = new Date();
+  }
   
   for (let i = 0; i < count; i++) {
     const d = new Date(base);
-    // Use month advancement for clean monthly dates or day addition
     d.setMonth(d.getMonth() + i);
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, '0');

@@ -8,8 +8,9 @@ import {
   Award,
   Wallet
 } from 'lucide-react';
-import { ContractDeal, Installment, PropertyType } from '../types';
+import { ContractDeal, Installment, PropertyType, DealCategory } from '../types';
 import { formatCurrency, generateInstallmentDates } from '../utils/formatters';
+import { sanitizeDeveloperName } from '../utils/storage';
 
 interface DealModalProps {
   isOpen: boolean;
@@ -27,6 +28,8 @@ export const DealModal: React.FC<DealModalProps> = ({
   if (!isOpen) return null;
 
   // Basic Form State
+  const [dealCategory, setDealCategory] = useState<DealCategory>('venda_direta');
+  const [signatureDate, setSignatureDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [propertyTitle, setPropertyTitle] = useState('');
   const [propertyType, setPropertyType] = useState<PropertyType>('apartamento');
   const [clientName, setClientName] = useState('');
@@ -264,11 +267,13 @@ export const DealModal: React.FC<DealModalProps> = ({
   // Load existing deal if editing
   useEffect(() => {
     if (dealToEdit) {
+      setDealCategory(dealToEdit.dealCategory || 'venda_direta');
+      setSignatureDate(dealToEdit.signatureDate || dealToEdit.contractDate || new Date().toISOString().slice(0, 10));
       setPropertyTitle(dealToEdit.propertyTitle);
       setPropertyType(dealToEdit.propertyType);
       setClientName(dealToEdit.clientName);
       setClientPhone(dealToEdit.clientPhone || '');
-      setDeveloperOrAgency(dealToEdit.developerOrAgency || '');
+      setDeveloperOrAgency(sanitizeDeveloperName(dealToEdit.developerOrAgency || ''));
       setContractDate(dealToEdit.contractDate);
       setPropertyValue(dealToEdit.propertyValue || '');
       setGrossCommissionPercent(dealToEdit.grossCommissionPercent);
@@ -285,12 +290,15 @@ export const DealModal: React.FC<DealModalProps> = ({
       }
     } else {
       // Initialize fresh new deal
+      setDealCategory('venda_direta');
+      const today = new Date().toISOString().slice(0, 10);
+      setSignatureDate(today);
+      setContractDate(today);
       setPropertyTitle('');
       setPropertyType('apartamento');
       setClientName('');
       setClientPhone('');
       setDeveloperOrAgency('');
-      setContractDate(new Date().toISOString().slice(0, 10));
       setPropertyValue('');
       setGrossCommissionPercent(5);
       setGrossCommissionValue('');
@@ -300,7 +308,6 @@ export const DealModal: React.FC<DealModalProps> = ({
       setBonusDescription('');
       setNotes('');
       setNumInstallments(2);
-      const today = new Date().toISOString().slice(0, 10);
       setFirstDueDate(today);
       setInstallments([]);
     }
@@ -437,14 +444,18 @@ export const DealModal: React.FC<DealModalProps> = ({
     // Check status: if all installments are received, deal is completed
     const allReceived = finalizedInstallments.length > 0 && finalizedInstallments.every((i) => i.status === 'recebido');
 
+    const effectiveDate = signatureDate || contractDate;
+
     const newDeal: ContractDeal = {
       id: dealId,
       propertyTitle: propertyTitle.trim(),
       propertyType,
+      dealCategory,
       clientName: clientName.trim(),
       clientPhone: clientPhone.trim() || undefined,
-      developerOrAgency: developerOrAgency.trim() || 'Torre Sul',
-      contractDate,
+      developerOrAgency: sanitizeDeveloperName(developerOrAgency),
+      contractDate: effectiveDate,
+      signatureDate: effectiveDate,
       propertyValue: finalPropVal,
       grossCommissionPercent: finalGrossPercent,
       grossCommissionValue: finalGrossValue,
@@ -497,12 +508,70 @@ export const DealModal: React.FC<DealModalProps> = ({
           {/* Section 1: Imóvel & Cliente */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-blue-600 inline-block" />
-              1. Dados do Imóvel & Cliente
+              <span className="w-2 h-2 rounded-full bg-red-600 inline-block" />
+              1. Dados do Imóvel, Operação & Fechamento
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="sm:col-span-2">
+            {/* Seletor: Venda Direta vs Agenciamento */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Tipo de Operação *
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDealCategory('venda_direta')}
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    dealCategory === 'venda_direta'
+                      ? 'border-red-600 bg-red-50/40 text-slate-900 ring-1 ring-red-600 shadow-xs'
+                      : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-red-600" />
+                      Venda Direta
+                    </span>
+                    {dealCategory === 'venda_direta' && (
+                      <span className="text-[10px] font-bold bg-red-600 text-white px-1.5 py-0.5 rounded">
+                        Venda
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Você realizou o atendimento e fechamento da venda.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDealCategory('agenciamento')}
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    dealCategory === 'agenciamento'
+                      ? 'border-slate-900 bg-slate-100/80 text-slate-900 ring-1 ring-slate-900 shadow-xs'
+                      : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-slate-800" />
+                      Agenciamento / Captação
+                    </span>
+                    {dealCategory === 'agenciamento' && (
+                      <span className="text-[10px] font-bold bg-slate-900 text-white px-1.5 py-0.5 rounded">
+                        Captação
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Você captou/agenciou o imóvel para a carteira.
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              <div className="sm:col-span-5">
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Nome do Imóvel / Empreendimento *
                 </label>
@@ -516,7 +585,7 @@ export const DealModal: React.FC<DealModalProps> = ({
                 />
               </div>
 
-              <div>
+              <div className="sm:col-span-3">
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Tipo de Imóvel
                 </label>
@@ -533,6 +602,22 @@ export const DealModal: React.FC<DealModalProps> = ({
                   <option value="rural">Chácara / Rural</option>
                   <option value="outro">Outro</option>
                 </select>
+              </div>
+
+              <div className="sm:col-span-4">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Data de Fechamento / Assinatura *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={signatureDate}
+                  onChange={(e) => {
+                    setSignatureDate(e.target.value);
+                    setContractDate(e.target.value);
+                  }}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
             </div>
 
@@ -566,11 +651,10 @@ export const DealModal: React.FC<DealModalProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Origem / Parceria / Imobiliária
+                  Construtora / Incorporadora (Opcional)
                 </label>
                 <input
                   type="text"
-                  placeholder="Ex: Torre Sul, Parceria ou Autônomo"
                   value={developerOrAgency}
                   onChange={(e) => setDeveloperOrAgency(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -583,7 +667,7 @@ export const DealModal: React.FC<DealModalProps> = ({
           <div className="space-y-3 pt-3 border-t border-slate-100">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block" />
+                <span className="w-2 h-2 rounded-full bg-red-600 inline-block" />
                 2. Valores & Divisão de Comissão (Cálculo Livre em R$ ou %)
               </h3>
               <span className="text-[11px] text-slate-400">
@@ -607,7 +691,7 @@ export const DealModal: React.FC<DealModalProps> = ({
                     placeholder="0,00"
                     value={propertyValue}
                     onChange={(e) => handlePropertyValueChange(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg text-xs sm:text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   />
                 </div>
                 <span className="text-[11px] text-slate-500 block mt-0.5 font-medium">
@@ -643,7 +727,7 @@ export const DealModal: React.FC<DealModalProps> = ({
                       placeholder="5"
                       value={grossCommissionPercent}
                       onChange={(e) => handleGrossPercentChange(e.target.value)}
-                      className="w-full px-2 py-2 border border-slate-200 rounded text-xs font-semibold text-center focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-2 py-2 border border-slate-200 rounded text-xs font-semibold text-center focus:outline-none focus:ring-1 focus:ring-zinc-900"
                     />
                     <span className="absolute right-2 top-2 text-xs text-slate-400">%</span>
                   </div>
@@ -667,7 +751,7 @@ export const DealModal: React.FC<DealModalProps> = ({
                     placeholder="0,00"
                     value={grossCommissionValue}
                     onChange={(e) => handleGrossValueChange(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg text-xs sm:text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   />
                 </div>
                 <span className="text-[11px] text-slate-500 block mt-0.5 font-medium">
@@ -691,7 +775,7 @@ export const DealModal: React.FC<DealModalProps> = ({
                       onClick={() => handleBrokerSplitPercentChange(s)}
                       className={`px-2.5 py-2 rounded text-xs font-bold cursor-pointer transition-colors ${
                         numBrokerSplit === s
-                          ? 'bg-emerald-700 text-white shadow-xs'
+                          ? 'bg-zinc-900 text-white shadow-xs'
                           : 'bg-white hover:bg-slate-200 text-slate-700 border border-slate-200'
                       }`}
                     >
@@ -706,7 +790,7 @@ export const DealModal: React.FC<DealModalProps> = ({
                       placeholder="50"
                       value={brokerSplitPercent}
                       onChange={(e) => handleBrokerSplitPercentChange(e.target.value)}
-                      className="w-full px-2 py-2 bg-white border border-slate-200 rounded text-xs font-semibold text-center focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-2 py-2 bg-white border border-slate-200 rounded text-xs font-semibold text-center focus:outline-none focus:ring-1 focus:ring-zinc-900"
                     />
                     <span className="absolute right-2 top-2 text-xs text-slate-400">%</span>
                   </div>
@@ -718,12 +802,12 @@ export const DealModal: React.FC<DealModalProps> = ({
 
               {/* Valor Líquido da Comissão (R$) - Totalmente Editável */}
               <div>
-                <label className="block text-xs font-bold text-emerald-800 mb-1 flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center justify-between">
                   <span>Sua Comissão Líquida a Receber (R$)</span>
-                  <span className="text-[10px] font-normal text-emerald-600">Editável em R$</span>
+                  <span className="text-[10px] font-normal text-slate-500">Editável em R$</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-2 text-xs text-emerald-600 font-bold">R$</span>
+                  <span className="absolute left-3 top-2 text-xs text-slate-400 font-bold">R$</span>
                   <input
                     type="number"
                     min="0"
@@ -731,24 +815,24 @@ export const DealModal: React.FC<DealModalProps> = ({
                     placeholder="0,00"
                     value={brokerNetCommission}
                     onChange={(e) => handleBrokerNetCommissionChange(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 bg-white border-2 border-emerald-300 rounded-lg text-xs sm:text-sm font-bold text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full pl-8 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   />
                 </div>
-                <span className="text-[11px] text-emerald-700 font-semibold block mt-0.5">
+                <span className="text-[11px] text-slate-700 font-semibold block mt-0.5">
                   {numBrokerNet > 0 ? formatCurrency(numBrokerNet) : 'R$ 0,00'}
                 </span>
               </div>
             </div>
 
             {/* Bônus extra / Premiação da construtora */}
-            <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-amber-900 mb-1 flex items-center gap-1">
-                  <Award className="w-3.5 h-3.5 text-amber-600" />
+                <label className="block text-xs font-semibold text-slate-800 mb-1 flex items-center gap-1.5">
+                  <Award className="w-3.5 h-3.5 text-red-600" />
                   Bônus ou Premiação Extra (R$)
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-2 text-xs text-amber-600 font-bold">R$</span>
+                  <span className="absolute left-3 top-2 text-xs text-slate-400 font-bold">R$</span>
                   <input
                     type="number"
                     min="0"
@@ -756,16 +840,16 @@ export const DealModal: React.FC<DealModalProps> = ({
                     placeholder="0,00 (Ex: 1500.50)"
                     value={bonusAmount}
                     onChange={(e) => handleBonusAmountChange(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 bg-white border border-amber-200 rounded-lg text-xs sm:text-sm font-semibold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className="w-full pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   />
                 </div>
-                <span className="text-[11px] text-amber-700 block mt-0.5">
+                <span className="text-[11px] text-slate-500 block mt-0.5">
                   {numBonus > 0 ? formatCurrency(numBonus) : 'Opcional (prêmio de lançamento, etc.)'}
                 </span>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-amber-900 mb-1">
+                <label className="block text-xs font-semibold text-slate-800 mb-1">
                   Descrição do Bônus / Campanha
                 </label>
                 <input
@@ -773,7 +857,7 @@ export const DealModal: React.FC<DealModalProps> = ({
                   placeholder="Ex: Prêmio Meta Semestral ou Campanha Sinal"
                   value={bonusDescription}
                   onChange={(e) => setBonusDescription(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                 />
               </div>
             </div>
