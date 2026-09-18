@@ -10,18 +10,50 @@ export interface UserCloudData {
 }
 
 /**
+ * Deeply removes undefined fields from objects/arrays so Firestore doesn't reject them
+ */
+export function sanitizeForFirestore<T>(input: T): T {
+  if (input === undefined) {
+    return null as any;
+  }
+  if (input === null || typeof input !== 'object') {
+    return input;
+  }
+  if (input instanceof Date) {
+    return input.toISOString() as any;
+  }
+  if (Array.isArray(input)) {
+    return input
+      .map((item) => sanitizeForFirestore(item))
+      .filter((item) => item !== undefined) as any;
+  }
+
+  const output: Record<string, any> = {};
+  for (const [key, value] of Object.entries(input)) {
+    if (value !== undefined) {
+      output[key] = sanitizeForFirestore(value);
+    }
+  }
+  return output as T;
+}
+
+/**
  * Save user deals to Firestore cloud
  */
 export async function saveDealsToCloud(user: User, deals: ContractDeal[]): Promise<void> {
   try {
     const userDocRef = doc(db, 'users', user.uid);
-    const data: UserCloudData = {
-      deals,
+    const rawData = {
+      deals: deals || [],
       updatedAt: new Date().toISOString(),
       userEmail: user.email || '',
       displayName: user.displayName || 'Corretor Torresul',
     };
-    await setDoc(userDocRef, data, { merge: true });
+    
+    // Sanitize to guarantee no undefined values reach Firestore
+    const cleanData = sanitizeForFirestore(rawData);
+    
+    await setDoc(userDocRef, cleanData, { merge: true });
   } catch (error) {
     console.error('Erro ao sincronizar com Firestore:', error);
     throw error;
