@@ -6,7 +6,10 @@ import {
   signInWithRedirect,
   getRedirectResult,
   signOut, 
-  onAuthStateChanged, 
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   User 
 } from 'firebase/auth';
 import { 
@@ -114,6 +117,26 @@ export const logoutGoogle = async () => {
     await signOut(auth);
   } catch (error) {
     console.error('Erro ao sair:', error);
+    throw error;
+  }
+};
+
+export const signInWithEmail = async (email: string, pass: string) => {
+  try {
+    const res = await signInWithEmailAndPassword(auth, email, pass);
+    return res.user;
+  } catch (error) {
+    console.error('Erro no login por email:', error);
+    throw error;
+  }
+};
+
+export const signUpWithEmail = async (email: string, pass: string) => {
+  try {
+    const res = await createUserWithEmailAndPassword(auth, email, pass);
+    return res.user;
+  } catch (error) {
+    console.error('Erro no cadastro por email:', error);
     throw error;
   }
 };
