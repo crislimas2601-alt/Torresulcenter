@@ -35,20 +35,29 @@ export class ErrorBoundary extends Component<Props, State> {
               Ocorreu um erro inesperado
             </h2>
             <p className="text-xs text-zinc-600 leading-relaxed">
-              O simulador encontrou uma inconsistência ao renderizar. Clique abaixo para reiniciar a ferramenta com segurança.
+              O sistema encontrou uma inconsistência momentânea ao renderizar. Seus dados cadastrados continuam seguros.
             </p>
-            <button
-              type="button"
-              onClick={() => {
-                localStorage.removeItem('torresul_loan_input_v1');
-                localStorage.removeItem('torresul_extra_amort_v1');
-                window.location.reload();
-              }}
-              className="w-full py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span>Restaurar Valores Padrão</span>
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  this.setState({ hasError: false, error: undefined });
+                }}
+                className="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition cursor-pointer"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Tentar Novamente</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.reload();
+                }}
+                className="flex-1 py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition cursor-pointer"
+              >
+                <span>Recarregar Página</span>
+              </button>
+            </div>
           </div>
         </div>
       );

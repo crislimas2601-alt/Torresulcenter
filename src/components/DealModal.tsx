@@ -6,10 +6,11 @@ import {
   DollarSign, 
   Percent, 
   Award,
-  Wallet
+  Wallet,
+  AlertCircle
 } from 'lucide-react';
 import { ContractDeal, Installment, PropertyType, DealCategory } from '../types';
-import { formatCurrency, generateInstallmentDates } from '../utils/formatters';
+import { formatCurrency, generateInstallmentDates, parseBRLInput } from '../utils/formatters';
 import { sanitizeDeveloperName } from '../utils/storage';
 
 interface DealModalProps {
@@ -37,6 +38,7 @@ export const DealModal: React.FC<DealModalProps> = ({
   const [developerOrAgency, setDeveloperOrAgency] = useState('');
   const [contractDate, setContractDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState('');
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   // Financial values (stored as string | number so typing decimals/commas never locks or blocks)
   const [propertyValue, setPropertyValue] = useState<string | number>('');
@@ -52,13 +54,9 @@ export const DealModal: React.FC<DealModalProps> = ({
   const [firstDueDate, setFirstDueDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [installments, setInstallments] = useState<Installment[]>([]);
 
-  // Helper for numeric conversion
+  // Helper for numeric conversion using safe parseBRLInput
   const parseNum = (val: string | number): number => {
-    if (typeof val === 'number') return isNaN(val) ? 0 : val;
-    if (!val || typeof val !== 'string') return 0;
-    const normalized = val.replace(',', '.').trim();
-    const parsed = parseFloat(normalized);
-    return isNaN(parsed) ? 0 : parsed;
+    return parseBRLInput(val);
   };
 
   // Helper to rebalance existing or new installments when values change
@@ -395,14 +393,15 @@ export const DealModal: React.FC<DealModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!propertyTitle.trim()) {
-      alert('Por favor, informe o nome ou identificação do imóvel.');
+      setValidationError('Por favor, informe o nome ou identificação do imóvel.');
       return;
     }
     if (!clientName.trim()) {
-      alert('Por favor, informe o nome do cliente/comprador.');
+      setValidationError('Por favor, informe o nome do cliente/comprador.');
       return;
     }
 
+    setValidationError(null);
     const dealId = dealToEdit ? dealToEdit.id : `deal-${Date.now()}`;
 
     // Calculate final financial numbers directly from inputs
@@ -505,6 +504,14 @@ export const DealModal: React.FC<DealModalProps> = ({
         {/* Modal Body */}
         <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-5 flex-1">
           
+          {/* Validation Error Notice */}
+          {validationError && (
+            <div className="p-3 bg-red-50 border border-red-300 rounded-xl flex items-center gap-2.5 text-xs text-red-700 font-semibold shadow-xs">
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+              <span>{validationError}</span>
+            </div>
+          )}
+
           {/* Section 1: Imóvel & Cliente */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
@@ -580,7 +587,10 @@ export const DealModal: React.FC<DealModalProps> = ({
                   required
                   placeholder="Ex: Edifício Vision - Apto 904 ou Casa Condomínio"
                   value={propertyTitle}
-                  onChange={(e) => setPropertyTitle(e.target.value)}
+                  onChange={(e) => {
+                    setPropertyTitle(e.target.value);
+                    if (validationError) setValidationError(null);
+                  }}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -631,7 +641,10 @@ export const DealModal: React.FC<DealModalProps> = ({
                   required
                   placeholder="Ex: Carlos Eduardo e Família"
                   value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
+                  onChange={(e) => {
+                    setClientName(e.target.value);
+                    if (validationError) setValidationError(null);
+                  }}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -684,13 +697,15 @@ export const DealModal: React.FC<DealModalProps> = ({
                 <div className="relative">
                   <span className="absolute left-3 top-2 text-xs text-slate-400 font-bold">R$</span>
                   <input
-                    type="number"
-                    min="0"
-                    step="any"
+                    type="text"
+                    inputMode="decimal"
                     required
                     placeholder="0,00"
                     value={propertyValue}
-                    onChange={(e) => handlePropertyValueChange(e.target.value)}
+                    onChange={(e) => {
+                      handlePropertyValueChange(e.target.value);
+                      if (validationError) setValidationError(null);
+                    }}
                     className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg text-xs sm:text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   />
                 </div>
@@ -721,9 +736,8 @@ export const DealModal: React.FC<DealModalProps> = ({
                   ))}
                   <div className="relative flex-1">
                     <input
-                      type="number"
-                      min="0"
-                      step="any"
+                      type="text"
+                      inputMode="decimal"
                       placeholder="5"
                       value={grossCommissionPercent}
                       onChange={(e) => handleGrossPercentChange(e.target.value)}
@@ -745,9 +759,8 @@ export const DealModal: React.FC<DealModalProps> = ({
                 <div className="relative">
                   <span className="absolute left-3 top-2 text-xs text-slate-400 font-bold">R$</span>
                   <input
-                    type="number"
-                    min="0"
-                    step="any"
+                    type="text"
+                    inputMode="decimal"
                     placeholder="0,00"
                     value={grossCommissionValue}
                     onChange={(e) => handleGrossValueChange(e.target.value)}
@@ -784,9 +797,8 @@ export const DealModal: React.FC<DealModalProps> = ({
                   ))}
                   <div className="relative w-20">
                     <input
-                      type="number"
-                      min="0"
-                      step="any"
+                      type="text"
+                      inputMode="decimal"
                       placeholder="50"
                       value={brokerSplitPercent}
                       onChange={(e) => handleBrokerSplitPercentChange(e.target.value)}
@@ -809,9 +821,8 @@ export const DealModal: React.FC<DealModalProps> = ({
                 <div className="relative">
                   <span className="absolute left-3 top-2 text-xs text-slate-400 font-bold">R$</span>
                   <input
-                    type="number"
-                    min="0"
-                    step="any"
+                    type="text"
+                    inputMode="decimal"
                     placeholder="0,00"
                     value={brokerNetCommission}
                     onChange={(e) => handleBrokerNetCommissionChange(e.target.value)}
@@ -834,10 +845,9 @@ export const DealModal: React.FC<DealModalProps> = ({
                 <div className="relative">
                   <span className="absolute left-3 top-2 text-xs text-slate-400 font-bold">R$</span>
                   <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    placeholder="0,00 (Ex: 1500.50)"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="0,00 (Ex: 1500,50)"
                     value={bonusAmount}
                     onChange={(e) => handleBonusAmountChange(e.target.value)}
                     className="w-full pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
@@ -979,10 +989,10 @@ export const DealModal: React.FC<DealModalProps> = ({
                     </div>
                     <div className="col-span-3">
                       <input
-                        type="number"
-                        step="any"
+                        type="text"
+                        inputMode="decimal"
                         value={inst.amount}
-                        onChange={(e) => handleUpdateInstallment(idx, 'amount', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
+                        onChange={(e) => handleUpdateInstallment(idx, 'amount', parseBRLInput(e.target.value))}
                         className="w-full px-2 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-right"
                       />
                     </div>

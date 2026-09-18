@@ -319,7 +319,7 @@ export default function App() {
   // Export to CSV
   const handleExportCsv = () => {
     if (deals.length === 0) {
-      alert('Não há vendas cadastradas para exportar.');
+      showToast('Não há vendas cadastradas para exportar.');
       return;
     }
 
@@ -380,12 +380,13 @@ export default function App() {
     document.body.appendChild(link);
     link.click();
     link.remove();
+    showToast('Relatório CSV exportado com sucesso!');
   };
 
   // Export JSON Backup
   const handleExportJson = () => {
     if (deals.length === 0) {
-      alert('Não há contratos cadastrados para exportar backup.');
+      showToast('Não há contratos cadastrados para exportar backup.');
       return;
     }
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(deals, null, 2));
@@ -410,10 +411,10 @@ export default function App() {
         if (Array.isArray(json)) {
           handleImportDeals(json);
         } else {
-          alert('Arquivo inválido: o formato precisa ser uma lista de contratos.');
+          showToast('Arquivo inválido: o formato precisa ser uma lista de contratos.');
         }
       } catch (err) {
-        alert('Erro ao carregar o arquivo JSON.');
+        showToast('Erro ao carregar o arquivo JSON.');
       }
     };
     reader.readAsText(file);
