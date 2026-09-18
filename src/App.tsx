@@ -39,7 +39,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { 
   saveDealsToCloud, 
   loadDealsFromCloud, 
-  subscribeToUserCloud 
+  subscribeToUserCloud,
+  areDealsEqual
 } from './utils/cloudSync';
 import { 
   CheckCircle2, 
@@ -69,6 +70,9 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const isInitialCloudLoad = React.useRef(true);
+  const lastSyncedJson = React.useRef<string>('');
+  const dealsRef = React.useRef<ContractDeal[]>(deals);
+  dealsRef.current = deals;
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Monitor Google Auth state & perform cloud sync
@@ -92,19 +96,15 @@ export default function App() {
               ...deal,
               developerOrAgency: sanitizeDeveloperName(deal.developerOrAgency),
             }));
-            const hadChanges = sanitizedCloudDeals.some(
-              (d, i) => d.developerOrAgency !== cloudDeals[i]?.developerOrAgency
-            );
+            lastSyncedJson.current = JSON.stringify(sanitizedCloudDeals);
             setDeals(sanitizedCloudDeals);
             saveDeals(sanitizedCloudDeals);
-            if (hadChanges) {
-              saveDealsToCloud(currentUser, sanitizedCloudDeals).catch(console.error);
-            }
             showToast(`Conectado como ${currentUser.displayName || currentUser.email}! Dados sincronizados.`);
           } else {
             // First time login for this user: save current local deals to their new cloud database
             const currentLocalDeals = loadDeals();
             if (currentLocalDeals.length > 0) {
+              lastSyncedJson.current = JSON.stringify(currentLocalDeals);
               await saveDealsToCloud(currentUser, currentLocalDeals);
             }
             showToast(`Conta conectada! Seus dados estão salvos na nuvem.`);
@@ -117,21 +117,27 @@ export default function App() {
                 ...deal,
                 developerOrAgency: sanitizeDeveloperName(deal.developerOrAgency),
               }));
-              setDeals(sanitizedRemote);
-              saveDeals(sanitizedRemote);
+              
+              if (!areDealsEqual(dealsRef.current, sanitizedRemote)) {
+                lastSyncedJson.current = JSON.stringify(sanitizedRemote);
+                setDeals(sanitizedRemote);
+                saveDeals(sanitizedRemote);
+              }
             }
             isInitialCloudLoad.current = false;
           });
         } catch (error) {
-          console.error('Erro na sincronização inicial:', error);
+          console.warn('Sincronização inicial em modo tolerante:', error);
         } finally {
           setIsSyncing(false);
+          isInitialCloudLoad.current = false;
         }
       } else {
         if (unsubscribeSnapshot) {
           unsubscribeSnapshot();
           unsubscribeSnapshot = null;
         }
+        isInitialCloudLoad.current = false;
       }
     });
 
@@ -143,21 +149,28 @@ export default function App() {
     };
   }, []);
 
-  // Save to localStorage and auto-sync to Cloud whenever deals change
+  // Save to localStorage immediately and debounce auto-sync to Cloud
   useEffect(() => {
     saveDeals(deals);
 
     if (user && !isInitialCloudLoad.current) {
+      const currentJson = JSON.stringify(deals);
+      // Skip if data is unchanged from last sync
+      if (currentJson === lastSyncedJson.current) {
+        return;
+      }
+
       const syncTimeout = setTimeout(async () => {
         try {
           setIsSyncing(true);
           await saveDealsToCloud(user, deals);
+          lastSyncedJson.current = JSON.stringify(deals);
         } catch (err) {
-          console.error('Erro no auto-sync:', err);
+          console.warn('Auto-sync notice:', err);
         } finally {
           setIsSyncing(false);
         }
-      }, 800);
+      }, 1000);
 
       return () => clearTimeout(syncTimeout);
     }

@@ -14,24 +14,51 @@ import {
   doc, 
   setDoc, 
   getDoc, 
-  onSnapshot 
+  onSnapshot,
+  getDocFromServer
 } from 'firebase/firestore';
 import { getAnalytics, isSupported } from 'firebase/analytics';
-// Configuração do projeto Firebase (torresulcenter-c527c)
+import firebaseAppletConfig from '../../firebase-applet-config.json';
+
+// Configuração do projeto Firebase com suporte transparente tanto para o AI Studio quanto para Vercel / ambiente externo
+const activeApiKey = import.meta.env.VITE_FIREBASE_API_KEY || firebaseAppletConfig.apiKey;
+const activeAuthDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseAppletConfig.authDomain;
+const activeProjectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseAppletConfig.projectId;
+const activeStorageBucket = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseAppletConfig.storageBucket;
+const activeMessagingSenderId = import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseAppletConfig.messagingSenderId;
+const activeAppId = import.meta.env.VITE_FIREBASE_APP_ID || firebaseAppletConfig.appId;
+const activeMeasurementId = import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || firebaseAppletConfig.measurementId;
+
 export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyB7f0uh8ZwYIGMSvO67T4t0II4q0p3sfUk",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "torresulcenter-c527c.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "torresulcenter-c527c",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "torresulcenter-c527c.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "335861110894",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:335861110894:web:faac48a1fd745c4eacee7f",
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-308EDYGLJ3",
+  apiKey: activeApiKey,
+  authDomain: activeAuthDomain,
+  projectId: activeProjectId,
+  storageBucket: activeStorageBucket,
+  messagingSenderId: activeMessagingSenderId,
+  appId: activeAppId,
+  measurementId: activeMeasurementId,
 };
 
 // Initialize Firebase only once
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// Connect to provisioned Firestore database instance
+export const db = (!import.meta.env.VITE_FIREBASE_PROJECT_ID && firebaseAppletConfig.firestoreDatabaseId)
+  ? getFirestore(app, firebaseAppletConfig.firestoreDatabaseId)
+  : getFirestore(app);
+
+// Test connection safely on startup without throwing unhandled exceptions
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.warn("Firebase client está no modo offline.");
+    }
+  }
+}
+testConnection();
 
 // Initialize Firebase Analytics safely (client-side only when supported)
 export let analytics: ReturnType<typeof getAnalytics> | null = null;
@@ -58,7 +85,7 @@ export const checkRedirectLogin = async () => {
     }
     return null;
   } catch (error) {
-    console.warn('Erro ao verificar redirect login:', error);
+    console.warn('Aviso ao verificar redirect login:', error);
     return null;
   }
 };
@@ -80,13 +107,6 @@ export const signInWithGoogle = async () => {
       }
     }
 
-    if (error.code === 'auth/unauthorized-domain') {
-      alert(`⚠️ Domínio não autorizado no Firebase!\n\nO domínio do seu site na Vercel (${window.location.hostname}) precisa estar adicionado em "Domínios Autorizados" no console do Firebase Authentication.`);
-    } else if (error.code === 'auth/network-request-failed') {
-      alert('Erro de conexão com os servidores do Google. Verifique sua internet ou tente novamente.');
-    } else if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
-      alert(`Não foi possível conectar com o Google: ${error.message || error.code}`);
-    }
     throw error;
   }
 };

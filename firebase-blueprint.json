@@ -1,0 +1,36 @@
+{
+  "entities": {
+    "UserCloudData": {
+      "title": "User Cloud Data",
+      "description": "User specific deals, contracts, proposals and synchronization data",
+      "type": "object",
+      "properties": {
+        "deals": {
+          "type": "array",
+          "description": "List of user contract deals and commission installments"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last synchronization timestamp"
+        },
+        "userEmail": {
+          "type": "string",
+          "format": "email",
+          "description": "Email of the broker"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name of the broker"
+        }
+      },
+      "required": ["updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserCloudData",
+      "description": "Private collection storing each broker's deals and contracts"
+    }
+  }
+}
