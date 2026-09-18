@@ -43,10 +43,8 @@ export const firebaseConfig = {
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 
-// Connect to provisioned Firestore database instance
-export const db = (!import.meta.env.VITE_FIREBASE_PROJECT_ID && firebaseAppletConfig.firestoreDatabaseId)
-  ? getFirestore(app, firebaseAppletConfig.firestoreDatabaseId)
-  : getFirestore(app);
+// Connect to provisioned Firestore database instance (default database)
+export const db = getFirestore(app);
 
 // Test connection safely on startup without throwing unhandled exceptions
 async function testConnection() {
