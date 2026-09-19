@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, onSnapshot, getDocFromServer } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db, User } from '../lib/firebase';
 import { ContractDeal } from '../types';
 
@@ -52,10 +52,44 @@ export function areDealsEqual(a: ContractDeal[], b: ContractDeal[]): boolean {
 }
 
 /**
- * Save user deals to Firestore cloud safely
+ * Merges local deals and cloud deals without duplicate loss.
+ * If a user already had deals stored in local storage before logging in,
+ * this function preserves them and ensures they are migrated to the cloud.
  */
-export async function saveDealsToCloud(user: User, deals: ContractDeal[]): Promise<void> {
-  if (!user || !user.uid) return;
+export function mergeDeals(cloudDeals: ContractDeal[], localDeals: ContractDeal[]): ContractDeal[] {
+  const map = new Map<string, ContractDeal>();
+
+  // 1. Insert local deals first
+  for (const deal of localDeals || []) {
+    if (deal && deal.id) {
+      map.set(deal.id, deal);
+    }
+  }
+
+  // 2. Overlay cloud deals (preserve newer updates or add cloud deals)
+  for (const deal of cloudDeals || []) {
+    if (deal && deal.id) {
+      const existing = map.get(deal.id);
+      if (!existing) {
+        map.set(deal.id, deal);
+      } else {
+        const existingTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+        const cloudTime = deal.updatedAt ? new Date(deal.updatedAt).getTime() : 0;
+        if (cloudTime >= existingTime) {
+          map.set(deal.id, deal);
+        }
+      }
+    }
+  }
+
+  return Array.from(map.values());
+}
+
+/**
+ * Save user deals to Firestore cloud safely and return success or error info
+ */
+export async function saveDealsToCloud(user: User, deals: ContractDeal[]): Promise<{ success: boolean; error?: any }> {
+  if (!user || !user.uid) return { success: false, error: 'Usuário não autenticado' };
   try {
     const userDocRef = doc(db, 'users', user.uid);
     const rawData = {
@@ -69,29 +103,29 @@ export async function saveDealsToCloud(user: User, deals: ContractDeal[]): Promi
     const cleanData = sanitizeForFirestore(rawData);
     
     await setDoc(userDocRef, cleanData, { merge: true });
+    return { success: true };
   } catch (error: any) {
-    console.warn('Sincronização com nuvem (aviso não-fatal):', error?.message || error);
-    // Don't crash the UI; local storage remains the robust offline-first source of truth
-    throw error;
+    console.warn('Erro ao salvar no Firestore:', error?.message || error);
+    return { success: false, error };
   }
 }
 
 /**
  * Fetch user deals once from Firestore
  */
-export async function loadDealsFromCloud(user: User): Promise<ContractDeal[] | null> {
-  if (!user || !user.uid) return null;
+export async function loadDealsFromCloud(user: User): Promise<{ deals: ContractDeal[] | null; error?: any }> {
+  if (!user || !user.uid) return { deals: null, error: 'Usuário não autenticado' };
   try {
     const userDocRef = doc(db, 'users', user.uid);
     const docSnap = await getDoc(userDocRef);
     if (docSnap.exists()) {
       const data = docSnap.data() as UserCloudData;
-      return Array.isArray(data.deals) ? data.deals : [];
+      return { deals: Array.isArray(data.deals) ? data.deals : [] };
     }
-    return null;
+    return { deals: [] };
   } catch (error: any) {
     console.warn('Aviso ao carregar dados do Firestore:', error?.message || error);
-    return null;
+    return { deals: null, error };
   }
 }
 
@@ -100,7 +134,8 @@ export async function loadDealsFromCloud(user: User): Promise<ContractDeal[] | n
  */
 export function subscribeToUserCloud(
   user: User, 
-  onData: (deals: ContractDeal[]) => void
+  onData: (deals: ContractDeal[]) => void,
+  onError?: (err: any) => void
 ): () => void {
   if (!user || !user.uid) return () => {};
 
@@ -123,10 +158,12 @@ export function subscribeToUserCloud(
       }, 
       (error) => {
         console.warn('Aviso no listener de nuvem (modo offline / reconectando):', error?.message || error);
+        if (onError) onError(error);
       }
     );
   } catch (err) {
     console.warn('Não foi possível iniciar listener em tempo real:', err);
+    if (onError) onError(err);
     return () => {};
   }
 }

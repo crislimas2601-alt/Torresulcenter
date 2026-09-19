@@ -41,7 +41,8 @@ import {
   saveDealsToCloud, 
   loadDealsFromCloud, 
   subscribeToUserCloud,
-  areDealsEqual
+  areDealsEqual,
+  mergeDeals
 } from './utils/cloudSync';
 import { 
   CheckCircle2, 
@@ -72,6 +73,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [authChecking, setAuthChecking] = useState<boolean>(true);
   const [expiredNotice, setExpiredNotice] = useState<string | null>(null);
+  const [cloudSyncWarning, setCloudSyncWarning] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const isInitialCloudLoad = React.useRef(true);
   const lastSyncedJson = React.useRef<string>('');
@@ -116,43 +118,65 @@ export default function App() {
         setIsSyncing(true);
         try {
           // Load existing remote deals if any
-          const cloudDeals = await loadDealsFromCloud(currentUser);
+          const { deals: cloudDeals, error: cloudError } = await loadDealsFromCloud(currentUser);
           
-          if (cloudDeals && cloudDeals.length > 0) {
-            const sanitizedCloudDeals = cloudDeals.map((deal) => ({
+          if (cloudError) {
+            const errStr = String(cloudError?.message || cloudError);
+            if (errStr.includes('disabled') || errStr.includes('not been used') || cloudError?.code === 'permission-denied') {
+              setCloudSyncWarning(
+                'O banco de dados Firestore ainda precisa ser criado no Firebase Console (Menu: Firestore Database > Criar banco de dados). Enquanto isso, todos os seus dados continuam 100% salvos no seu computador.'
+              );
+            }
+          } else {
+            setCloudSyncWarning(null);
+          }
+
+          // Merge existing local browser deals with cloud deals so NO PRIOR DATA IS LOST!
+          const currentLocalDeals = loadDeals();
+          const merged = mergeDeals(cloudDeals || [], currentLocalDeals || []);
+
+          if (merged.length > 0) {
+            const sanitizedDeals = merged.map((deal) => ({
               ...deal,
               developerOrAgency: sanitizeDeveloperName(deal.developerOrAgency),
             }));
-            lastSyncedJson.current = JSON.stringify(sanitizedCloudDeals);
-            setDeals(sanitizedCloudDeals);
-            saveDeals(sanitizedCloudDeals);
-            showToast(`Bem-vindo, ${currentUser.displayName || currentUser.email}! Dados sincronizados.`);
+            lastSyncedJson.current = JSON.stringify(sanitizedDeals);
+            setDeals(sanitizedDeals);
+            saveDeals(sanitizedDeals);
+
+            // Attempt cloud sync if deals exist
+            saveDealsToCloud(currentUser, sanitizedDeals).then((res) => {
+              if (res.success) {
+                setCloudSyncWarning(null);
+              }
+            });
+            showToast(`Bem-vindo, ${currentUser.displayName || currentUser.email}! Dados carregados.`);
           } else {
-            // First time login for this user: save current local deals to their new cloud database
-            const currentLocalDeals = loadDeals();
-            if (currentLocalDeals.length > 0) {
-              lastSyncedJson.current = JSON.stringify(currentLocalDeals);
-              await saveDealsToCloud(currentUser, currentLocalDeals);
-            }
-            showToast(`Conta conectada com sucesso! Seus dados estão salvos na nuvem.`);
+            showToast(`Bem-vindo, ${currentUser.displayName || currentUser.email}!`);
           }
 
           // Subscribe to real-time updates from other tabs/devices
-          unsubscribeSnapshot = subscribeToUserCloud(currentUser, (remoteDeals) => {
-            if (!isInitialCloudLoad.current) {
-              const sanitizedRemote = remoteDeals.map((deal) => ({
-                ...deal,
-                developerOrAgency: sanitizeDeveloperName(deal.developerOrAgency),
-              }));
-              
-              if (!areDealsEqual(dealsRef.current, sanitizedRemote)) {
-                lastSyncedJson.current = JSON.stringify(sanitizedRemote);
-                setDeals(sanitizedRemote);
-                saveDeals(sanitizedRemote);
+          unsubscribeSnapshot = subscribeToUserCloud(
+            currentUser, 
+            (remoteDeals) => {
+              if (!isInitialCloudLoad.current) {
+                const sanitizedRemote = remoteDeals.map((deal) => ({
+                  ...deal,
+                  developerOrAgency: sanitizeDeveloperName(deal.developerOrAgency),
+                }));
+                
+                if (!areDealsEqual(dealsRef.current, sanitizedRemote)) {
+                  lastSyncedJson.current = JSON.stringify(sanitizedRemote);
+                  setDeals(sanitizedRemote);
+                  saveDeals(sanitizedRemote);
+                }
               }
+              isInitialCloudLoad.current = false;
+            },
+            (err) => {
+              console.warn('Listener notice:', err);
             }
-            isInitialCloudLoad.current = false;
-          });
+          );
         } catch (error) {
           console.warn('Sincronização inicial em modo tolerante:', error);
         } finally {
@@ -180,7 +204,7 @@ export default function App() {
     };
   }, []);
 
-  // Save to localStorage immediately and debounce auto-sync to Cloud
+  // Save to localStorage immediately and sync to Cloud
   useEffect(() => {
     saveDeals(deals);
 
@@ -191,19 +215,24 @@ export default function App() {
         return;
       }
 
-      const syncTimeout = setTimeout(async () => {
-        try {
-          setIsSyncing(true);
-          await saveDealsToCloud(user, deals);
-          lastSyncedJson.current = JSON.stringify(deals);
-        } catch (err) {
-          console.warn('Auto-sync notice:', err);
-        } finally {
-          setIsSyncing(false);
+      setIsSyncing(true);
+      saveDealsToCloud(user, deals).then((res) => {
+        setIsSyncing(false);
+        if (res.success) {
+          lastSyncedJson.current = currentJson;
+          setCloudSyncWarning(null);
+        } else if (res.error) {
+          const errStr = String(res.error?.message || res.error);
+          if (errStr.includes('disabled') || errStr.includes('not been used') || res.error?.code === 'permission-denied') {
+            setCloudSyncWarning(
+              'O banco de dados Firestore ainda precisa ser criado no Firebase Console (Menu: Firestore Database > Criar banco de dados). Enquanto isso, todos os seus dados continuam 100% salvos no seu computador.'
+            );
+          }
         }
-      }, 1000);
-
-      return () => clearTimeout(syncTimeout);
+      }).catch((err) => {
+        setIsSyncing(false);
+        console.warn('Auto-sync notice:', err);
+      });
     }
   }, [deals, user]);
 
@@ -534,6 +563,19 @@ export default function App() {
               onTabChange={setActiveTab}
               onToggleSidebar={() => setIsSidebarOpenMobile(true)}
             />
+
+            {/* Firestore Setup Warning Banner if Database not created in Firebase Console */}
+            {cloudSyncWarning && (
+              <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-amber-900 text-xs">
+                <div className="max-w-7xl mx-auto flex items-start gap-2.5">
+                  <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-amber-950">Ativação do Banco em Nuvem Pendente:</p>
+                    <p className="mt-0.5 text-amber-800">{cloudSyncWarning}</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Main Container */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-16 space-y-6 sm:space-y-8 flex-1 w-full">
