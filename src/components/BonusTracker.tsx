@@ -1,5 +1,5 @@
 import React from 'react';
-import { Award, CheckCircle2, Clock, Sparkles, Plus, Gift } from 'lucide-react';
+import { Award, CheckCircle2, Clock, Plus, Gift } from 'lucide-react';
 import { ContractDeal, Installment } from '../types';
 import { formatCurrency, formatDateBR } from '../utils/formatters';
 

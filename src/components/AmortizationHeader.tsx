@@ -3,9 +3,7 @@ import {
   Download,
   Share2,
   Tv,
-  HelpCircle,
   RotateCcw,
-  Sparkles,
   ExternalLink,
   Smartphone,
   Sliders,
@@ -13,6 +11,7 @@ import {
   Building,
   KeyRound,
   TrendingUp,
+  TrendingDown,
 } from 'lucide-react';
 import { TorresulLogo } from './TorresulLogo';
 
@@ -53,7 +52,7 @@ export const AmortizationHeader: React.FC<HeaderProps> = ({
       <div className="bg-zinc-900 text-zinc-300 text-[11px] px-4 py-1.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1.5 text-white font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
             Torresul Imobiliária • Sistema Comercial MCMV / Caixa
           </span>
           <span className="text-zinc-600 hidden sm:inline">|</span>
@@ -63,8 +62,8 @@ export const AmortizationHeader: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/40">
-            Nuvem Ativa
+          <span className="text-[10px] text-zinc-400 font-medium">
+            Sistema Ativo
           </span>
         </div>
       </div>
@@ -89,40 +88,40 @@ export const AmortizationHeader: React.FC<HeaderProps> = ({
         </div>
 
         {/* 3 Main Tool Tabs: Amortização, Aluguel vs Compra, Investidores */}
-        <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl border border-zinc-200 overflow-x-auto">
+        <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-md border border-slate-200/80 overflow-x-auto">
           <button
             type="button"
             onClick={() => onChangeFeatureTab('amortizacao')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition whitespace-nowrap cursor-pointer ${
               activeFeatureTab === 'amortizacao'
-                ? 'bg-white text-zinc-900 shadow-xs border border-zinc-200'
-                : 'text-zinc-600 hover:text-zinc-900'
+                ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5 text-red-600" />
-            <span>Quitação Acelerada</span>
+            <TrendingDown className="w-3.5 h-3.5 text-red-600" />
+            <span>Quitação acelerada</span>
           </button>
 
           <button
             type="button"
             onClick={() => onChangeFeatureTab('aluguel_vs_compra')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition whitespace-nowrap cursor-pointer ${
               activeFeatureTab === 'aluguel_vs_compra'
-                ? 'bg-white text-zinc-900 shadow-xs border border-zinc-200'
-                : 'text-zinc-600 hover:text-zinc-900'
+                ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Building className="w-3.5 h-3.5 text-zinc-600" />
+            <Building className="w-3.5 h-3.5 text-slate-600" />
             <span>Alugar vs. Comprar</span>
           </button>
 
           <button
             type="button"
             onClick={() => onChangeFeatureTab('investidores')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition whitespace-nowrap cursor-pointer ${
               activeFeatureTab === 'investidores'
-                ? 'bg-white text-zinc-900 shadow-xs border border-zinc-200'
-                : 'text-zinc-600 hover:text-zinc-900'
+                ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
@@ -133,14 +132,14 @@ export const AmortizationHeader: React.FC<HeaderProps> = ({
         {/* Action Controls & Mode Switcher */}
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end">
           {/* Corretor vs Cliente Selector */}
-          <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl border border-zinc-200 text-xs">
+          <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-md border border-slate-200/80 text-xs">
             <button
               type="button"
               onClick={() => onToggleUserMode('broker')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition ${
+              className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer ${
                 userMode === 'broker'
-                  ? 'bg-white text-zinc-900 shadow-xs'
-                  : 'text-zinc-600 hover:text-zinc-900'
+                  ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Sliders className="w-3.5 h-3.5" />
@@ -149,10 +148,10 @@ export const AmortizationHeader: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={() => onToggleUserMode('client')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition ${
+              className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer ${
                 userMode === 'client'
-                  ? 'bg-white text-zinc-900 shadow-xs'
-                  : 'text-zinc-600 hover:text-zinc-900'
+                  ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Eye className="w-3.5 h-3.5" />
@@ -164,7 +163,7 @@ export const AmortizationHeader: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={onOpenTVMode}
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold transition shadow-xs"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium transition cursor-pointer"
             title="Modo Apresentação TV em Tela Cheia"
           >
             <Tv className="w-3.5 h-3.5 text-red-500" />
@@ -175,27 +174,17 @@ export const AmortizationHeader: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={onOpenShareModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium transition cursor-pointer"
           >
-            <Share2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">WhatsApp</span>
-          </button>
-
-          {/* Educational Guide */}
-          <button
-            type="button"
-            onClick={onOpenEducationalModal}
-            className="p-1.5 rounded-xl text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition"
-            title="Como funciona a amortização acelerada?"
-          >
-            <HelpCircle className="w-5 h-5" />
+            <Share2 className="w-3.5 h-3.5 text-slate-300" />
+            <span>Compartilhar</span>
           </button>
 
           {/* Reset button */}
           <button
             type="button"
             onClick={onResetToDefaults}
-            className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition"
+            className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
             title="Restaurar simulação padrão"
           >
             <RotateCcw className="w-4 h-4" />

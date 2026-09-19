@@ -12,7 +12,6 @@ import {
   Copy, 
   Check,
   Layers,
-  Sparkles,
   Zap,
   Repeat
 } from 'lucide-react';

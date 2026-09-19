@@ -21,7 +21,6 @@ import {
   Calendar, 
   DollarSign, 
   ArrowUpDown, 
-  Sparkles, 
   Layers, 
   Check, 
   X, 
@@ -340,15 +339,13 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
   const getDealCategoryBadge = (category?: 'venda_direta' | 'agenciamento') => {
     if (category === 'agenciamento') {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200" title="Agenciamento / Captação do Imóvel">
-          <Building2 className="w-3 h-3 text-slate-600" />
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
           Agenciamento
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200/80" title="Venda Direta">
-        <Tag className="w-3 h-3 text-red-600" />
+      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
         Venda Direta
       </span>
     );
@@ -358,23 +355,20 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
     switch (status) {
       case 'concluido':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-800 border border-slate-200">
             Quitado
           </span>
         );
       case 'distrato':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-red-50 text-red-700 border border-red-200">
-            <AlertCircle className="w-3 h-3 text-red-600" />
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-500 line-through border border-slate-200">
             Distrato
           </span>
         );
       case 'em_andamento':
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
-            <Clock className="w-3 h-3 text-blue-600" />
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
             Em Andamento
           </span>
         );
@@ -402,21 +396,20 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           
           <div className="flex items-start sm:items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
-              <Database className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0">
+              <Database className="w-5 h-5" />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2.5">
                 <h2 className="text-xl font-bold text-slate-900 font-heading">
                   Banco de Dados de Contratos & Vendas
                 </h2>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Armazenamento Local Ativo
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                  Armazenamento Local
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                Tabela relacional completa com todos os contratos, clientes, cálculos de comissões líquidas e parcelas registradas.
+                Tabela com contratos, clientes, cálculos de comissões líquidas e parcelas registradas.
               </p>
             </div>
           </div>
@@ -429,7 +422,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer border border-slate-200"
               title="Exportar todos os dados para Excel / CSV"
             >
-              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <FileSpreadsheet className="w-4 h-4 text-slate-600" />
               <span>Exportar Excel</span>
             </button>
 
@@ -456,7 +449,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
             <button
               id="btn-db-new-deal"
               onClick={onOpenNewDeal}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-xs transition cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Novo Registro</span>
@@ -496,7 +489,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
             <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block">
               Comissão Total
             </span>
-            <div className="text-sm sm:text-base font-bold text-amber-700 mt-0.5 truncate" title={formatCurrency(databaseStats.totalReceivables)}>
+            <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5 truncate" title={formatCurrency(databaseStats.totalReceivables)}>
               {formatCurrency(databaseStats.totalReceivables)}
             </div>
             <span className="text-[10px] text-slate-400 mt-0.5 block">
@@ -504,26 +497,26 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
             </span>
           </div>
 
-          <div className="bg-emerald-50/70 p-3 rounded-xl border border-emerald-100">
-            <span className="text-[11px] font-medium text-emerald-800 uppercase tracking-wider block">
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+            <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block">
               Já Recebido
             </span>
-            <div className="text-sm sm:text-base font-bold text-emerald-700 mt-0.5 truncate" title={formatCurrency(databaseStats.totalReceived)}>
+            <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5 truncate" title={formatCurrency(databaseStats.totalReceived)}>
               {formatCurrency(databaseStats.totalReceived)}
             </div>
-            <span className="text-[10px] text-emerald-600 mt-0.5 block font-medium">
+            <span className="text-[10px] text-slate-500 mt-0.5 block font-medium">
               {databaseStats.completionPercent.toFixed(0)}% liquidado
             </span>
           </div>
 
-          <div className="bg-blue-50/70 p-3 rounded-xl border border-blue-100">
-            <span className="text-[11px] font-medium text-blue-800 uppercase tracking-wider block">
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+            <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block">
               Saldo a Receber
             </span>
-            <div className="text-sm sm:text-base font-bold text-blue-700 mt-0.5 truncate" title={formatCurrency(databaseStats.totalPending)}>
+            <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5 truncate" title={formatCurrency(databaseStats.totalPending)}>
               {formatCurrency(databaseStats.totalPending)}
             </div>
-            <span className="text-[10px] text-blue-600 mt-0.5 block">
+            <span className="text-[10px] text-slate-400 mt-0.5 block">
               Previsão futura
             </span>
           </div>
@@ -545,25 +538,20 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
         {/* Discriminador de Operações: Vendas Diretas vs Agenciamentos */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-100">
           <div className={`p-3.5 rounded-xl border transition-all ${
-            selectedCategory === 'venda_direta' ? 'bg-red-50/40 border-red-300 ring-1 ring-red-300' : 'bg-slate-50/70 border-slate-200'
+            selectedCategory === 'venda_direta' ? 'bg-slate-100 border-slate-400 ring-1 ring-slate-300' : 'bg-slate-50/70 border-slate-200'
           }`}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-red-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <Tag className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                    Vendas Diretas Realizadas
-                  </span>
-                  <div className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
-                    {filteredSubtotals.filteredDirectCount} <span className="text-xs font-normal text-slate-500">imóveis</span>
-                    {(startDate || endDate || selectedCategory !== 'all') && (
-                      <span className="text-[11px] font-medium text-slate-500 ml-1.5">
-                        (de {databaseStats.totalDirectSalesCount} ao total)
-                      </span>
-                    )}
-                  </div>
+              <div>
+                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                  Vendas Diretas
+                </span>
+                <div className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
+                  {filteredSubtotals.filteredDirectCount} <span className="text-xs font-normal text-slate-500">imóveis</span>
+                  {(startDate || endDate || selectedCategory !== 'all') && (
+                    <span className="text-[11px] font-medium text-slate-500 ml-1.5">
+                      (de {databaseStats.totalDirectSalesCount} ao total)
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="text-right">
@@ -576,25 +564,20 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
           </div>
 
           <div className={`p-3.5 rounded-xl border transition-all ${
-            selectedCategory === 'agenciamento' ? 'bg-slate-100/90 border-slate-400 ring-1 ring-slate-400' : 'bg-slate-50/70 border-slate-200'
+            selectedCategory === 'agenciamento' ? 'bg-slate-100 border-slate-400 ring-1 ring-slate-300' : 'bg-slate-50/70 border-slate-200'
           }`}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-slate-800 text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <Building2 className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                    Agenciamentos / Captações
-                  </span>
-                  <div className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
-                    {filteredSubtotals.filteredAgencyCount} <span className="text-xs font-normal text-slate-500">imóveis</span>
-                    {(startDate || endDate || selectedCategory !== 'all') && (
-                      <span className="text-[11px] font-medium text-slate-500 ml-1.5">
-                        (de {databaseStats.totalAgencyCount} ao total)
-                      </span>
-                    )}
-                  </div>
+              <div>
+                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                  Agenciamentos
+                </span>
+                <div className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
+                  {filteredSubtotals.filteredAgencyCount} <span className="text-xs font-normal text-slate-500">imóveis</span>
+                  {(startDate || endDate || selectedCategory !== 'all') && (
+                    <span className="text-[11px] font-medium text-slate-500 ml-1.5">
+                      (de {databaseStats.totalAgencyCount} ao total)
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="text-right">
@@ -1352,31 +1335,6 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
           })}
         </div>
       )}
-
-      {/* Cloud & Backup Security Notice */}
-      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-xl bg-slate-900 text-amber-400 flex items-center justify-center shrink-0">
-            <HardDrive className="w-4 h-4" />
-          </div>
-          <div>
-            <h4 className="text-xs sm:text-sm font-bold text-slate-900">
-              Banco de Dados Seguro no seu Navegador
-            </h4>
-            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-              Todas as inserções, baixas de parcelas e edições são salvas automaticamente em tempo real. Você pode fazer o download do banco a qualquer momento pelo botão <strong>Backup JSON</strong> ou <strong>Exportar Excel</strong>.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-          <button
-            onClick={onExportCsv}
-            className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg border border-slate-200 transition shadow-2xs cursor-pointer"
-          >
-            Baixar Planilha
-          </button>
-        </div>
-      </div>
 
     </div>
   );

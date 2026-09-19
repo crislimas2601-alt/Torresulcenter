@@ -10,7 +10,6 @@ import {
   Percent,
   Calculator,
   Layers,
-  Sparkles,
 } from 'lucide-react';
 
 interface ParcelamentoSectionProps {
@@ -249,8 +248,8 @@ export const ParcelamentoSection: React.FC<ParcelamentoSectionProps> = ({
                 {item.temJurosDiluidos && (
                   <div className="p-3.5 bg-amber-50/80 border border-amber-200 rounded-xl space-y-3 animate-in fade-in duration-150">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+                      <span className="text-xs font-semibold text-amber-900 flex items-center gap-1.5">
+                        <Calculator className="w-3.5 h-3.5 text-amber-800" />
                         Juros Adicionais Diluídos nas Parcelas desta Série
                       </span>
                       <span className="text-[11px] text-amber-800">

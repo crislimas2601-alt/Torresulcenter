@@ -7,7 +7,6 @@ import {
   Percent, 
   Clock, 
   ArrowRight, 
-  Sparkles, 
   Printer, 
   Share2, 
   CheckCircle2, 
@@ -656,11 +655,11 @@ _Simulação gerada pela Torre Sul Imobiliária._`;
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Economia Real no Bolso do Comprador
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                  <TrendingDown className="w-3.5 h-3.5" />
+                  Economia de Juros no Financiamento
                 </span>
-                <div className="text-3xl sm:text-4xl font-black tracking-tight text-white mt-1 font-heading">
+                <div className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mt-1 font-heading">
                   {formatCurrency(summary.savedInterest)}
                 </div>
                 <p className="text-xs text-slate-300 mt-1">

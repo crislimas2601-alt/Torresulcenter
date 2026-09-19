@@ -287,9 +287,9 @@ export const UserAuthButton: React.FC<UserAuthButtonProps> = ({
           <span className="text-[11px] font-bold text-slate-900 truncate max-w-[100px]">
             {user.displayName?.split(' ')[0] || 'Corretor'}
           </span>
-          <span className="text-[9px] text-emerald-600 font-bold flex items-center gap-0.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            Nuvem Ativa
+          <span className="text-[10px] text-slate-500 font-medium flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            Online
           </span>
         </div>
 

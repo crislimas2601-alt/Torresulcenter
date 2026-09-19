@@ -52,7 +52,6 @@ import {
   CheckCircle2, 
   Info, 
   TrendingUp, 
-  Sparkles, 
   CalendarDays,
   FileCheck2,
   Menu,

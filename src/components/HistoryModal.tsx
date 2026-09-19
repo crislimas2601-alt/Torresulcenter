@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ProposalData } from '../types';
 import { formatBRL, formatDateBR } from '../utils/formatter';
-import { Bookmark, Clock, Trash2, FolderOpen, PlusCircle, X, Sparkles } from 'lucide-react';
+import { Bookmark, Clock, Trash2, FolderOpen, PlusCircle, X, FileText } from 'lucide-react';
 
 interface HistoryModalProps {
   isOpen: boolean;
@@ -71,7 +71,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
           {/* Quick Preset Templates */}
           <div className="space-y-3">
             <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-red-600" />
+              <FileText className="w-4 h-4 text-slate-700" />
               Modelos de Proposta Predefinidos
             </span>
 

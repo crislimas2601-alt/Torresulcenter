@@ -13,8 +13,7 @@ import {
   AlertTriangle,
   HelpCircle,
   Copy,
-  Check,
-  Sparkles
+  Check
 } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
 import { calculateRentVsBuy } from '../../utils/rentVsBuyCalculations';

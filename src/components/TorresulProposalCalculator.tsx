@@ -13,13 +13,10 @@ import { FloatingBalancePill } from './FloatingBalancePill';
 import { TorreSulLogo } from './TorresulLogo';
 import {
   RotateCcw,
-  Sparkles,
   Calculator,
   FileText,
   Copy,
   Check,
-  Download,
-  Printer,
   ArrowRight,
   ArrowLeft,
   Edit3,
@@ -268,45 +265,6 @@ export const TorresulProposalCalculator: React.FC = () => {
       setTimeout(() => setCopied(false), 2500);
     } catch (err) {
       console.error('Failed to copy text', err);
-    }
-  };
-
-  const handleShareWhatsApp = () => {
-    const encoded = encodeURIComponent(customMinutaText);
-    window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
-  };
-
-  const handleDownloadTxt = () => {
-    const element = document.createElement('a');
-    const file = new Blob([customMinutaText], { type: 'text/plain;charset=utf-8' });
-    element.href = URL.createObjectURL(file);
-    element.download = `Proposta_Torresul_${new Date().toISOString().slice(0, 10)}.txt`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-  };
-
-  const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Proposta Comercial - Torresul</title>
-            <style>
-              body { font-family: monospace, sans-serif; white-space: pre-wrap; padding: 24px; font-size: 14px; line-height: 1.6; color: #1e293b; }
-              h2 { font-family: sans-serif; margin-bottom: 16px; font-size: 18px; color: #b91c1c; }
-            </style>
-          </head>
-          <body>
-            <h2>TORRESUL IMOBILIÁRIA - PROPOSTA COMERCIAL</h2>
-            <hr style="margin-bottom: 20px;" />
-            ${customMinutaText}
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
     }
   };
 
@@ -819,12 +777,9 @@ export const TorresulProposalCalculator: React.FC = () => {
                   <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
                     Proposta finalizada p/envio
                   </h2>
-                  <span className="text-[10px] px-2 py-0.5 bg-emerald-500 text-white rounded font-black uppercase tracking-wider">
-                    MINUTA
-                  </span>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Formato padronizado pronto para envio e emissão de contrato
+                  Formato padronizado para elaboração de contrato
                 </p>
               </div>
 
@@ -851,7 +806,7 @@ export const TorresulProposalCalculator: React.FC = () => {
                   onClick={handleCopyMinuta}
                   className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer ${
                     copied
-                      ? 'bg-emerald-600 text-white ring-2 ring-emerald-400'
+                      ? 'bg-slate-700 text-white ring-2 ring-slate-400'
                       : 'bg-red-600 hover:bg-red-500 text-white active:scale-95 shadow-red-950/20'
                   }`}
                 >
@@ -866,38 +821,6 @@ export const TorresulProposalCalculator: React.FC = () => {
                       <span>Copiar Texto</span>
                     </>
                   )}
-                </button>
-
-                <button
-                  type="button"
-                  id="btn_whatsapp_minuta"
-                  onClick={handleShareWhatsApp}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition-colors cursor-pointer"
-                  title="Compartilhar via WhatsApp"
-                >
-                  <span>WhatsApp</span>
-                </button>
-
-                <button
-                  type="button"
-                  id="btn_baixar_txt_minuta"
-                  onClick={handleDownloadTxt}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer"
-                  title="Baixar em formato .txt"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Baixar .txt</span>
-                </button>
-
-                <button
-                  type="button"
-                  id="btn_imprimir_minuta"
-                  onClick={handlePrint}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer"
-                  title="Imprimir minuta"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>Imprimir</span>
                 </button>
               </div>
             </div>
@@ -916,18 +839,6 @@ export const TorresulProposalCalculator: React.FC = () => {
                   {customMinutaText}
                 </pre>
               )}
-            </div>
-
-            {/* Ready to Paste Banner */}
-            <div className="px-6 py-3 bg-slate-900 border-t border-slate-800 text-xs text-emerald-400 font-medium flex items-center justify-between">
-              <span>✓ Pronto para colar no sistema de contratos da Torresul</span>
-              <button
-                type="button"
-                onClick={handleCopyMinuta}
-                className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
-              >
-                Copiar novamente
-              </button>
             </div>
           </div>
         </div>
