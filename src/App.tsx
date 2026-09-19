@@ -34,7 +34,8 @@ import { Sidebar } from './components/Sidebar';
 import { AmortizationSuite } from './components/AmortizationSuite';
 import { ProposalBackOfficeTool } from './components/ProposalBackOfficeTool';
 import { TorreSulLogo } from './components/TorresulLogo';
-import { auth, User, checkRedirectLogin } from './lib/firebase';
+import { LoginScreen } from './components/LoginScreen';
+import { auth, User, checkRedirectLogin, isSessionExpired, logoutUser } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { 
   saveDealsToCloud, 
@@ -52,7 +53,8 @@ import {
   Menu,
   Calculator,
   FileText,
-  Wallet
+  Wallet,
+  RefreshCw
 } from 'lucide-react';
 
 export default function App() {
@@ -66,8 +68,10 @@ export default function App() {
   const [selectedMonthFilter, setSelectedMonthFilter] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   
-  // Google Auth & Cloud Sync States
+  // Authentication & Cloud Sync States
   const [user, setUser] = useState<User | null>(null);
+  const [authChecking, setAuthChecking] = useState<boolean>(true);
+  const [expiredNotice, setExpiredNotice] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const isInitialCloudLoad = React.useRef(true);
   const lastSyncedJson = React.useRef<string>('');
@@ -75,7 +79,7 @@ export default function App() {
   dealsRef.current = deals;
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Monitor Google Auth state & perform cloud sync
+  // Monitor Auth state & perform cloud sync
   useEffect(() => {
     // Check if user came back from a redirect login on mobile
     checkRedirectLogin();
@@ -83,9 +87,22 @@ export default function App() {
     let unsubscribeSnapshot: (() => void) | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-
       if (currentUser) {
+        // Enforce 7-day session validity rule
+        if (isSessionExpired(7)) {
+          try {
+            await logoutUser();
+          } catch {
+            // ignore
+          }
+          setUser(null);
+          setExpiredNotice('Sua sessão de 7 dias expirou por segurança. Por favor, faça login com seu e-mail e senha.');
+          setAuthChecking(false);
+          return;
+        }
+
+        setUser(currentUser);
+        setExpiredNotice(null);
         setIsSyncing(true);
         try {
           // Load existing remote deals if any
@@ -99,7 +116,7 @@ export default function App() {
             lastSyncedJson.current = JSON.stringify(sanitizedCloudDeals);
             setDeals(sanitizedCloudDeals);
             saveDeals(sanitizedCloudDeals);
-            showToast(`Conectado como ${currentUser.displayName || currentUser.email}! Dados sincronizados.`);
+            showToast(`Bem-vindo, ${currentUser.displayName || currentUser.email}! Dados sincronizados.`);
           } else {
             // First time login for this user: save current local deals to their new cloud database
             const currentLocalDeals = loadDeals();
@@ -107,7 +124,7 @@ export default function App() {
               lastSyncedJson.current = JSON.stringify(currentLocalDeals);
               await saveDealsToCloud(currentUser, currentLocalDeals);
             }
-            showToast(`Conta conectada! Seus dados estão salvos na nuvem.`);
+            showToast(`Conta conectada com sucesso! Seus dados estão salvos na nuvem.`);
           }
 
           // Subscribe to real-time updates from other tabs/devices
@@ -131,13 +148,16 @@ export default function App() {
         } finally {
           setIsSyncing(false);
           isInitialCloudLoad.current = false;
+          setAuthChecking(false);
         }
       } else {
+        setUser(null);
         if (unsubscribeSnapshot) {
           unsubscribeSnapshot();
           unsubscribeSnapshot = null;
         }
         isInitialCloudLoad.current = false;
+        setAuthChecking(false);
       }
     });
 
@@ -433,6 +453,33 @@ export default function App() {
     reader.readAsText(file);
     e.target.value = '';
   };
+
+  // If verifying authentication status on first load, render loading state
+  if (authChecking) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <div className="mb-4">
+          <TorreSulLogo size={44} variant="red" layout="icon-only" />
+        </div>
+        <div className="flex items-center gap-2 text-slate-500 text-xs font-medium">
+          <RefreshCw className="w-4 h-4 animate-spin text-slate-700" />
+          <span>Carregando sistema...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is not authenticated, render dedicated minimalist Login / Registration Screen
+  if (!user) {
+    return (
+      <LoginScreen
+        expiredNotice={expiredNotice}
+        onSuccess={() => {
+          setExpiredNotice(null);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-row font-sans">

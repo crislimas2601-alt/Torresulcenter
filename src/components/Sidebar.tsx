@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { AppToolMode } from '../types';
 import { TorreSulLogo } from './TorresulLogo';
-import { User, signInWithGoogle, logoutGoogle } from '../lib/firebase';
+import { User, logoutUser } from '../lib/firebase';
 import sidebarBgImage from '../assets/images/sidebar_premium_red_top_down_1789674732097.jpg';
 
 interface SidebarProps {
@@ -61,29 +61,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSignIn = async () => {
-    try {
-      setIsAuthLoading(true);
-      // If we are embedded inside the preview iframe, standard popups get blocked or close immediately by cross-origin security
-      if (window.self !== window.top) {
-        // Open the app in standalone new tab where Google Auth popup works without restrictions
-        window.open(window.location.href, '_blank');
-        setIsAuthLoading(false);
-        return;
-      }
-      await signInWithGoogle();
-      setIsSettingsOpen(false);
-    } catch (err) {
-      console.error('Erro ao conectar Google:', err);
-    } finally {
-      setIsAuthLoading(false);
-    }
-  };
-
   const handleSignOut = async () => {
     try {
       setIsAuthLoading(true);
-      await logoutGoogle();
+      await logoutUser();
       setIsSettingsOpen(false);
     } catch (err) {
       console.error('Erro ao desconectar:', err);
@@ -256,136 +237,68 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200/60 transition cursor-pointer"
                     >
                       <LogOut className="w-3.5 h-3.5" />
-                      <span>Desconectar Conta Google</span>
+                      <span>{isAuthLoading ? 'Saindo...' : 'Sair do Sistema'}</span>
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-3">
                   <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Conecte sua conta do Google para salvar seus contratos e propostas na nuvem com segurança total.
+                    Sua conta está conectada ao banco de dados da Torresul.
                   </p>
-
                   <button
                     type="button"
-                    onClick={handleSignIn}
+                    onClick={handleSignOut}
                     disabled={isAuthLoading}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-98"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-98"
                   >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24">
-                      <path
-                        fill="#4285F4"
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      />
-                      <path
-                        fill="#34A853"
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      />
-                      <path
-                        fill="#FBBC05"
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                      />
-                      <path
-                        fill="#EA4335"
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                      />
-                    </svg>
-                    <span>{isAuthLoading ? 'Conectando...' : 'Entrar com Google'}</span>
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Sair do Sistema</span>
                   </button>
                 </div>
               )}
             </div>
           )}
 
-          {/* Top Button / User Banner */}
-          {user ? (
-            <div className="flex items-center justify-between p-1.5 rounded-xl bg-black/40 border border-red-900/30 shadow-2xs backdrop-blur-sm">
-              <div 
-                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer select-none"
-              >
-                {user.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt={user.displayName || 'Corretor'}
-                    className="w-7 h-7 rounded-full object-cover ring-1 ring-red-500 shrink-0"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className="w-7 h-7 rounded-full bg-red-950/80 text-red-200 flex items-center justify-center font-bold text-[10px] shrink-0 border border-red-900/50">
-                    {user.displayName ? user.displayName.charAt(0).toUpperCase() : 'TS'}
-                  </div>
-                )}
-                {!isCollapsed && (
-                  <div className="truncate">
-                    <span className="font-bold text-white block truncate text-xs">
-                      {user.displayName?.split(' ')[0] || 'Corretor'}
-                    </span>
-                    <span className="text-[9px] text-emerald-400 font-semibold block truncate flex items-center gap-1 drop-shadow-md">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
-                      Nuvem Conectada
-                    </span>
-                  </div>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                className="p-1.5 text-zinc-400 hover:text-white hover:bg-black/30 rounded-lg transition cursor-pointer"
-                title="Configurações e Conta"
-              >
-                <Settings className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <div>
-              {!isCollapsed ? (
-                <button
-                  type="button"
-                  onClick={handleSignIn}
-                  disabled={isAuthLoading}
-                  className="w-full flex items-center justify-between p-2 rounded-xl bg-black/40 hover:bg-black/60 border border-red-900/30 text-white transition cursor-pointer shadow-2xs group backdrop-blur-sm"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-white">
-                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
-                        <path
-                          fill="#4285F4"
-                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        />
-                        <path
-                          fill="#34A853"
-                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        />
-                        <path
-                          fill="#FBBC05"
-                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                        />
-                        <path
-                          fill="#EA4335"
-                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                        />
-                      </svg>
-                    </div>
-                    <span className="text-xs font-bold text-zinc-200 truncate group-hover:text-white transition-colors">
-                      {isAuthLoading ? 'Entrando...' : 'Entrar com Google'}
-                    </span>
-                  </div>
-                  <Settings className="w-3.5 h-3.5 text-red-300/50 group-hover:text-white transition-colors" />
-                </button>
+          {/* User Banner at Bottom */}
+          <div className="flex items-center justify-between p-1.5 rounded-xl bg-black/40 border border-red-900/30 shadow-2xs backdrop-blur-sm">
+            <div 
+              onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+              className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer select-none"
+            >
+              {user?.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt={user.displayName || 'Corretor'}
+                  className="w-7 h-7 rounded-full object-cover ring-1 ring-red-500 shrink-0"
+                  referrerPolicy="no-referrer"
+                />
               ) : (
-                <button
-                  type="button"
-                  onClick={handleSignIn}
-                  disabled={isAuthLoading}
-                  className="w-full flex items-center justify-center p-2 rounded-xl bg-black/40 hover:bg-black/60 border border-red-900/30 text-white transition cursor-pointer shadow-2xs backdrop-blur-sm"
-                  title="Entrar com Google"
-                >
-                  <Settings className="w-4 h-4 text-red-300/50 hover:text-white transition-colors" />
-                </button>
+                <div className="w-7 h-7 rounded-full bg-red-950/80 text-red-200 flex items-center justify-center font-bold text-[10px] shrink-0 border border-red-900/50">
+                  {user?.displayName ? user.displayName.charAt(0).toUpperCase() : (user?.email ? user.email.charAt(0).toUpperCase() : 'TS')}
+                </div>
+              )}
+              {!isCollapsed && (
+                <div className="truncate">
+                  <span className="font-bold text-white block truncate text-xs">
+                    {user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'Corretor'}
+                  </span>
+                  <span className="text-[9px] text-emerald-400 font-semibold block truncate flex items-center gap-1 drop-shadow-md">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
+                    Nuvem Conectada
+                  </span>
+                </div>
               )}
             </div>
-          )}
+            <button
+              type="button"
+              onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+              className="p-1.5 text-zinc-400 hover:text-white hover:bg-black/30 rounded-lg transition cursor-pointer"
+              title="Conta & Sincronização"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Navigation Section */}

@@ -10,6 +10,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
+  updateProfile,
   User 
 } from 'firebase/auth';
 import { 
@@ -112,8 +113,9 @@ export const signInWithGoogle = async () => {
   }
 };
 
-export const logoutGoogle = async () => {
+export const logoutUser = async () => {
   try {
+    clearSessionTimestamp();
     await signOut(auth);
   } catch (error) {
     console.error('Erro ao sair:', error);
@@ -121,9 +123,12 @@ export const logoutGoogle = async () => {
   }
 };
 
+export const logoutGoogle = logoutUser;
+
 export const signInWithEmail = async (email: string, pass: string) => {
   try {
-    const res = await signInWithEmailAndPassword(auth, email, pass);
+    const res = await signInWithEmailAndPassword(auth, email.trim(), pass);
+    saveSessionTimestamp();
     return res.user;
   } catch (error) {
     console.error('Erro no login por email:', error);
@@ -131,13 +136,67 @@ export const signInWithEmail = async (email: string, pass: string) => {
   }
 };
 
-export const signUpWithEmail = async (email: string, pass: string) => {
+export const signUpWithEmail = async (email: string, pass: string, name?: string) => {
   try {
-    const res = await createUserWithEmailAndPassword(auth, email, pass);
+    const res = await createUserWithEmailAndPassword(auth, email.trim(), pass);
+    if (name && name.trim()) {
+      await updateProfile(res.user, { displayName: name.trim() });
+    }
+    saveSessionTimestamp();
     return res.user;
   } catch (error) {
     console.error('Erro no cadastro por email:', error);
     throw error;
+  }
+};
+
+export const resetPasswordWithEmail = async (email: string) => {
+  try {
+    await sendPasswordResetEmail(auth, email.trim());
+    return true;
+  } catch (error) {
+    console.error('Erro ao enviar recuperação de senha:', error);
+    throw error;
+  }
+};
+
+// 7-day session management
+const SESSION_TIMESTAMP_KEY = 'torresul_session_timestamp';
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+export const saveSessionTimestamp = () => {
+  try {
+    localStorage.setItem(SESSION_TIMESTAMP_KEY, Date.now().toString());
+  } catch {
+    // localStorage unavailable
+  }
+};
+
+export const isSessionExpired = (maxDays = 7): boolean => {
+  try {
+    const timestampStr = localStorage.getItem(SESSION_TIMESTAMP_KEY);
+    if (!timestampStr) {
+      // If user is logged in but has no timestamp recorded yet, record it now
+      saveSessionTimestamp();
+      return false;
+    }
+    const timestamp = parseInt(timestampStr, 10);
+    if (isNaN(timestamp)) {
+      saveSessionTimestamp();
+      return false;
+    }
+    const elapsed = Date.now() - timestamp;
+    return elapsed > (maxDays * 24 * 60 * 60 * 1000);
+  } catch {
+    return false;
+  }
+};
+
+export const clearSessionTimestamp = () => {
+  try {
+    localStorage.removeItem(SESSION_TIMESTAMP_KEY);
+  } catch {
+    // ignore
   }
 };
 
