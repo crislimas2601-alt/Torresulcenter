@@ -1,13 +1,17 @@
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { 
+  collection, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  setDoc, 
+  deleteDoc, 
+  writeBatch,
+  onSnapshot,
+  query,
+  orderBy
+} from 'firebase/firestore';
 import { db, User } from '../lib/firebase';
 import { ContractDeal } from '../types';
-
-export interface UserCloudData {
-  deals: ContractDeal[];
-  updatedAt: string;
-  userEmail: string;
-  displayName: string;
-}
 
 /**
  * Deeply removes undefined and invalid values from objects/arrays so Firestore doesn't reject them
@@ -52,21 +56,20 @@ export function areDealsEqual(a: ContractDeal[], b: ContractDeal[]): boolean {
 }
 
 /**
- * Merges local deals and cloud deals without duplicate loss.
- * If a user already had deals stored in local storage before logging in,
- * this function preserves them and ensures they are migrated to the cloud.
+ * Merges local deals and cloud deals by deal ID.
+ * Cloud version is preferred unless local has a newer updatedAt.
  */
 export function mergeDeals(cloudDeals: ContractDeal[], localDeals: ContractDeal[]): ContractDeal[] {
   const map = new Map<string, ContractDeal>();
 
-  // 1. Insert local deals first
+  // 1. Insert local deals
   for (const deal of localDeals || []) {
     if (deal && deal.id) {
       map.set(deal.id, deal);
     }
   }
 
-  // 2. Overlay cloud deals (preserve newer updates or add cloud deals)
+  // 2. Overlay cloud deals
   for (const deal of cloudDeals || []) {
     if (deal && deal.id) {
       const existing = map.get(deal.id);
@@ -86,51 +89,126 @@ export function mergeDeals(cloudDeals: ContractDeal[], localDeals: ContractDeal[
 }
 
 /**
- * Save user deals to Firestore cloud safely and return success or error info
+ * Save a single deal into Firestore under users/{userId}/deals/{dealId}
  */
-export async function saveDealsToCloud(user: User, deals: ContractDeal[]): Promise<{ success: boolean; error?: any }> {
-  if (!user || !user.uid) return { success: false, error: 'Usuário não autenticado' };
+export async function saveSingleDealToCloud(user: User, deal: ContractDeal): Promise<{ success: boolean; error?: any }> {
+  if (!user || !user.uid || !deal || !deal.id) return { success: false, error: 'Dados inválidos' };
   try {
+    const dealDocRef = doc(db, 'users', user.uid, 'deals', deal.id);
+    const cleanDeal = sanitizeForFirestore({
+      ...deal,
+      updatedAt: deal.updatedAt || new Date().toISOString(),
+    });
+    await setDoc(dealDocRef, cleanDeal, { merge: true });
+
+    // Also update user profile metadata
     const userDocRef = doc(db, 'users', user.uid);
-    const rawData = {
-      deals: deals || [],
-      updatedAt: new Date().toISOString(),
+    await setDoc(userDocRef, {
+      lastActiveAt: new Date().toISOString(),
       userEmail: user.email || '',
       displayName: user.displayName || 'Corretor Torresul',
-    };
-    
-    // Sanitize to guarantee no undefined values reach Firestore
-    const cleanData = sanitizeForFirestore(rawData);
-    
-    await setDoc(userDocRef, cleanData, { merge: true });
+    }, { merge: true });
+
     return { success: true };
   } catch (error: any) {
-    console.warn('Erro ao salvar no Firestore:', error?.message || error);
+    console.warn('Erro ao salvar contrato no Firestore:', error);
     return { success: false, error };
   }
 }
 
 /**
- * Fetch user deals once from Firestore
+ * Delete a single deal from Firestore
+ */
+export async function deleteSingleDealFromCloud(user: User, dealId: string): Promise<{ success: boolean; error?: any }> {
+  if (!user || !user.uid || !dealId) return { success: false, error: 'Dados inválidos' };
+  try {
+    const dealDocRef = doc(db, 'users', user.uid, 'deals', dealId);
+    await deleteDoc(dealDocRef);
+    return { success: true };
+  } catch (error: any) {
+    console.warn('Erro ao excluir contrato do Firestore:', error);
+    return { success: false, error };
+  }
+}
+
+/**
+ * Bulk save / migrate multiple deals to Firestore using batches
+ */
+export async function saveAllDealsToCloud(user: User, deals: ContractDeal[]): Promise<{ success: boolean; error?: any }> {
+  if (!user || !user.uid) return { success: false, error: 'Usuário não autenticado' };
+  if (!deals || deals.length === 0) return { success: true };
+
+  try {
+    const batch = writeBatch(db);
+    for (const deal of deals) {
+      if (deal && deal.id) {
+        const dealDocRef = doc(db, 'users', user.uid, 'deals', deal.id);
+        const clean = sanitizeForFirestore({
+          ...deal,
+          updatedAt: deal.updatedAt || new Date().toISOString(),
+        });
+        batch.set(dealDocRef, clean, { merge: true });
+      }
+    }
+
+    const userDocRef = doc(db, 'users', user.uid);
+    batch.set(userDocRef, {
+      updatedAt: new Date().toISOString(),
+      userEmail: user.email || '',
+      displayName: user.displayName || 'Corretor Torresul',
+    }, { merge: true });
+
+    await batch.commit();
+    return { success: true };
+  } catch (error: any) {
+    console.warn('Erro na gravação em lote do Firestore:', error);
+    return { success: false, error };
+  }
+}
+
+/**
+ * Fetch all deals for a user from Firestore subcollection: users/{userId}/deals
+ * Also checks legacy root doc for backward compatibility.
  */
 export async function loadDealsFromCloud(user: User): Promise<{ deals: ContractDeal[] | null; error?: any }> {
   if (!user || !user.uid) return { deals: null, error: 'Usuário não autenticado' };
   try {
-    const userDocRef = doc(db, 'users', user.uid);
-    const docSnap = await getDoc(userDocRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data() as UserCloudData;
-      return { deals: Array.isArray(data.deals) ? data.deals : [] };
+    const dealsColRef = collection(db, 'users', user.uid, 'deals');
+    const snapshot = await getDocs(dealsColRef);
+
+    let fetchedDeals: ContractDeal[] = [];
+    if (!snapshot.empty) {
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data() as ContractDeal;
+        if (data && data.id) {
+          fetchedDeals.push(data);
+        }
+      });
+    } else {
+      // Fallback: Check if user has legacy data in users/{userId} document
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      if (userDocSnap.exists()) {
+        const data = userDocSnap.data();
+        if (Array.isArray(data?.deals) && data.deals.length > 0) {
+          fetchedDeals = data.deals;
+          // Auto-migrate legacy data to subcollection
+          saveAllDealsToCloud(user, fetchedDeals).catch(() => {});
+        }
+      }
     }
-    return { deals: [] };
+
+    // Sort by contractDate descending
+    fetchedDeals.sort((a, b) => (b.contractDate || '').localeCompare(a.contractDate || ''));
+    return { deals: fetchedDeals };
   } catch (error: any) {
-    console.warn('Aviso ao carregar dados do Firestore:', error?.message || error);
+    console.warn('Erro ao carregar contratos do Firestore:', error?.message || error);
     return { deals: null, error };
   }
 }
 
 /**
- * Subscribe to real-time changes from Firestore safely
+ * Subscribe to real-time changes in users/{userId}/deals
  */
 export function subscribeToUserCloud(
   user: User, 
@@ -140,29 +218,32 @@ export function subscribeToUserCloud(
   if (!user || !user.uid) return () => {};
 
   try {
-    const userDocRef = doc(db, 'users', user.uid);
+    const dealsColRef = collection(db, 'users', user.uid, 'deals');
     return onSnapshot(
-      userDocRef, 
+      dealsColRef, 
       (snapshot) => {
-        // Ignore snapshots that originate from local pending writes to avoid feedback loops
         if (snapshot.metadata.hasPendingWrites) {
           return;
         }
 
-        if (snapshot.exists()) {
-          const data = snapshot.data() as UserCloudData;
-          if (Array.isArray(data.deals)) {
-            onData(data.deals);
+        const deals: ContractDeal[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data() as ContractDeal;
+          if (data && data.id) {
+            deals.push(data);
           }
-        }
+        });
+
+        deals.sort((a, b) => (b.contractDate || '').localeCompare(a.contractDate || ''));
+        onData(deals);
       }, 
       (error) => {
-        console.warn('Aviso no listener de nuvem (modo offline / reconectando):', error?.message || error);
+        console.warn('Listener Firestore notice:', error?.message || error);
         if (onError) onError(error);
       }
     );
   } catch (err) {
-    console.warn('Não foi possível iniciar listener em tempo real:', err);
+    console.warn('Não foi possível registrar listener do Firestore:', err);
     if (onError) onError(err);
     return () => {};
   }

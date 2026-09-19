@@ -8,6 +8,7 @@ import {
   ContractDeal, 
   Installment, 
   InstallmentStatus,
+  DealStatus,
   MonthlyForecastItem, 
   FinancialStats,
   AppToolMode 
@@ -38,7 +39,9 @@ import { LoginScreen } from './components/LoginScreen';
 import { auth, User, checkRedirectLogin, isSessionExpired, logoutUser } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { 
-  saveDealsToCloud, 
+  saveSingleDealToCloud,
+  deleteSingleDealFromCloud,
+  saveAllDealsToCloud,
   loadDealsFromCloud, 
   subscribeToUserCloud,
   areDealsEqual,
@@ -117,42 +120,56 @@ export default function App() {
         setExpiredNotice(null);
         setIsSyncing(true);
         try {
-          // Load existing remote deals if any
+          // Load user deals directly from Firestore subcollection
           const { deals: cloudDeals, error: cloudError } = await loadDealsFromCloud(currentUser);
           
           if (cloudError) {
             const errStr = String(cloudError?.message || cloudError);
-            if (errStr.includes('disabled') || errStr.includes('not been used') || cloudError?.code === 'permission-denied') {
+            if (errStr.includes('disabled') || errStr.includes('not been used')) {
               setCloudSyncWarning(
-                'O banco de dados Firestore ainda precisa ser criado no Firebase Console (Menu: Firestore Database > Criar banco de dados). Enquanto isso, todos os seus dados continuam 100% salvos no seu computador.'
+                'O banco de dados Firestore precisa ser criado no Firebase Console (Menu: Firestore Database > Criar banco de dados).'
+              );
+            } else if (cloudError?.code === 'permission-denied') {
+              setCloudSyncWarning(
+                'As regras do Firestore no seu Firebase Console estão bloqueando o acesso. Acesse a aba "Regras" do Firestore no Firebase Console e publique a regra de permissão.'
               );
             }
           } else {
             setCloudSyncWarning(null);
           }
 
-          // Merge existing local browser deals with cloud deals so NO PRIOR DATA IS LOST!
-          const currentLocalDeals = loadDeals();
-          const merged = mergeDeals(cloudDeals || [], currentLocalDeals || []);
-
-          if (merged.length > 0) {
-            const sanitizedDeals = merged.map((deal) => ({
+          // If user has deals in cloud, that is the authoritative source of truth!
+          if (cloudDeals && cloudDeals.length > 0) {
+            const sanitizedCloudDeals = cloudDeals.map((deal) => ({
               ...deal,
               developerOrAgency: sanitizeDeveloperName(deal.developerOrAgency),
             }));
-            lastSyncedJson.current = JSON.stringify(sanitizedDeals);
-            setDeals(sanitizedDeals);
-            saveDeals(sanitizedDeals);
-
-            // Attempt cloud sync if deals exist
-            saveDealsToCloud(currentUser, sanitizedDeals).then((res) => {
-              if (res.success) {
-                setCloudSyncWarning(null);
-              }
-            });
-            showToast(`Bem-vindo, ${currentUser.displayName || currentUser.email}! Dados carregados.`);
+            lastSyncedJson.current = JSON.stringify(sanitizedCloudDeals);
+            setDeals(sanitizedCloudDeals);
+            saveDeals(sanitizedCloudDeals);
+            showToast(`Conta conectada: ${sanitizedCloudDeals.length} venda(s) carregada(s) da nuvem.`);
           } else {
-            showToast(`Bem-vindo, ${currentUser.displayName || currentUser.email}!`);
+            // If cloud is empty, check if this browser has local deals from before login
+            const currentLocalDeals = loadDeals();
+            if (currentLocalDeals.length > 0) {
+              // Migrate local deals to user's new cloud account
+              const sanitized = currentLocalDeals.map((d) => ({
+                ...d,
+                developerOrAgency: sanitizeDeveloperName(d.developerOrAgency),
+              }));
+              setDeals(sanitized);
+              saveDeals(sanitized);
+              saveAllDealsToCloud(currentUser, sanitized).then((res) => {
+                if (res.success) {
+                  setCloudSyncWarning(null);
+                }
+              });
+              showToast(`Conta conectada! ${sanitized.length} venda(s) sincronizada(s) para a nuvem.`);
+            } else {
+              setDeals([]);
+              saveDeals([]);
+              showToast(`Bem-vindo, ${currentUser.displayName || currentUser.email}!`);
+            }
           }
 
           // Subscribe to real-time updates from other tabs/devices
@@ -204,37 +221,10 @@ export default function App() {
     };
   }, []);
 
-  // Save to localStorage immediately and sync to Cloud
+  // Synchronize dealsRef whenever deals changes
   useEffect(() => {
-    saveDeals(deals);
-
-    if (user && !isInitialCloudLoad.current) {
-      const currentJson = JSON.stringify(deals);
-      // Skip if data is unchanged from last sync
-      if (currentJson === lastSyncedJson.current) {
-        return;
-      }
-
-      setIsSyncing(true);
-      saveDealsToCloud(user, deals).then((res) => {
-        setIsSyncing(false);
-        if (res.success) {
-          lastSyncedJson.current = currentJson;
-          setCloudSyncWarning(null);
-        } else if (res.error) {
-          const errStr = String(res.error?.message || res.error);
-          if (errStr.includes('disabled') || errStr.includes('not been used') || res.error?.code === 'permission-denied') {
-            setCloudSyncWarning(
-              'O banco de dados Firestore ainda precisa ser criado no Firebase Console (Menu: Firestore Database > Criar banco de dados). Enquanto isso, todos os seus dados continuam 100% salvos no seu computador.'
-            );
-          }
-        }
-      }).catch((err) => {
-        setIsSyncing(false);
-        console.warn('Auto-sync notice:', err);
-      });
-    }
-  }, [deals, user]);
+    dealsRef.current = deals;
+  }, [deals]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -243,16 +233,34 @@ export default function App() {
     }, 3500);
   };
 
-  // Manual Force Cloud Sync
+  // Manual Pull/Fetch Cloud Sync
   const handleManualSync = async () => {
     if (!user) return;
     try {
       setIsSyncing(true);
-      await saveDealsToCloud(user, deals);
-      showToast('Nuvem atualizada com sucesso!');
+      const { deals: cloudDeals, error } = await loadDealsFromCloud(user);
+      if (error) {
+        showToast('Aviso: Não foi possível conectar ao banco. Verifique a conexão.');
+        return;
+      }
+      if (cloudDeals && cloudDeals.length > 0) {
+        const sanitized = cloudDeals.map((deal) => ({
+          ...deal,
+          developerOrAgency: sanitizeDeveloperName(deal.developerOrAgency),
+        }));
+        setDeals(sanitized);
+        saveDeals(sanitized);
+        lastSyncedJson.current = JSON.stringify(sanitized);
+        showToast(`Sincronizado! ${sanitized.length} venda(s) carregada(s) da nuvem.`);
+      } else if (deals.length > 0) {
+        await saveAllDealsToCloud(user, deals);
+        showToast(`Sincronizado! ${deals.length} venda(s) enviada(s) para a nuvem.`);
+      } else {
+        showToast('Nenhuma venda encontrada na nuvem.');
+      }
     } catch (err: any) {
       console.error(err);
-      showToast(`Erro ao sincronizar: ${err.message || 'Verifique as permissões do Firebase'}`);
+      showToast(`Erro ao sincronizar: ${err?.message || 'Verifique as permissões'}`);
     } finally {
       setIsSyncing(false);
     }
@@ -265,8 +273,10 @@ export default function App() {
 
   // Handle toggle installment status (e.g. mark as received)
   const handleToggleInstallmentStatus = (dealId: string, installmentId: string) => {
-    setDeals((prevDeals) =>
-      prevDeals.map((deal) => {
+    let targetDeal: ContractDeal | null = null;
+
+    setDeals((prevDeals) => {
+      const updatedDeals = prevDeals.map((deal) => {
         if (deal.id !== dealId) return deal;
 
         const updatedInstallments: Installment[] = deal.installments.map((inst) => {
@@ -281,37 +291,66 @@ export default function App() {
 
         // If all installments are received, update deal status to 'concluido'
         const allReceived = updatedInstallments.every((i) => i.status === 'recebido');
-        const dealStatus = allReceived ? 'concluido' : 'em_andamento';
+        const dealStatus: DealStatus = allReceived ? 'concluido' : 'em_andamento';
 
-        return {
+        const updated: ContractDeal = {
           ...deal,
           installments: updatedInstallments,
           status: dealStatus,
           updatedAt: new Date().toISOString(),
         };
-      })
-    );
+        targetDeal = updated;
+        return updated;
+      });
+
+      saveDeals(updatedDeals);
+      return updatedDeals;
+    });
+
+    if (user && targetDeal) {
+      saveSingleDealToCloud(user, targetDeal);
+    }
 
     showToast('Status da parcela atualizado com sucesso!');
   };
 
   // Add or update deal
   const handleSaveDeal = (savedDeal: ContractDeal) => {
+    const sanitizedDeal: ContractDeal = {
+      ...savedDeal,
+      developerOrAgency: sanitizeDeveloperName(savedDeal.developerOrAgency),
+      updatedAt: new Date().toISOString(),
+    };
+
     setDeals((prev) => {
-      const exists = prev.some((d) => d.id === savedDeal.id);
-      if (exists) {
-        return prev.map((d) => (d.id === savedDeal.id ? savedDeal : d));
-      }
-      return [savedDeal, ...prev];
+      const exists = prev.some((d) => d.id === sanitizedDeal.id);
+      const updated = exists 
+        ? prev.map((d) => (d.id === sanitizedDeal.id ? sanitizedDeal : d))
+        : [sanitizedDeal, ...prev];
+      saveDeals(updated);
+      return updated;
     });
 
-    showToast(editingDeal ? 'Contrato atualizado!' : 'Nova venda cadastrada com sucesso!');
+    if (user) {
+      saveSingleDealToCloud(user, sanitizedDeal);
+    }
+
+    showToast(editingDeal ? 'Contrato atualizado na nuvem!' : 'Nova venda salva na nuvem com sucesso!');
     setEditingDeal(null);
   };
 
   // Delete deal
   const handleDeleteDeal = (dealId: string) => {
-    setDeals((prev) => prev.filter((d) => d.id !== dealId));
+    setDeals((prev) => {
+      const updated = prev.filter((d) => d.id !== dealId);
+      saveDeals(updated);
+      return updated;
+    });
+
+    if (user) {
+      deleteSingleDealFromCloud(user, dealId);
+    }
+
     showToast('Contrato excluído.');
   };
 
@@ -384,9 +423,16 @@ export default function App() {
 
   // Import JSON backup
   const handleImportDeals = (imported: ContractDeal[]) => {
-    setDeals(imported);
-    saveDeals(imported);
-    showToast(`${imported.length} contratos importados com sucesso!`);
+    const sanitized = imported.map((d) => ({
+      ...d,
+      developerOrAgency: sanitizeDeveloperName(d.developerOrAgency),
+    }));
+    setDeals(sanitized);
+    saveDeals(sanitized);
+    if (user) {
+      saveAllDealsToCloud(user, sanitized);
+    }
+    showToast(`${sanitized.length} contratos importados e salvos com sucesso!`);
   };
 
   // Export to CSV
