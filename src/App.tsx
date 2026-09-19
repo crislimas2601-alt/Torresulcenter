@@ -44,6 +44,7 @@ import {
   saveAllDealsToCloud,
   loadDealsFromCloud, 
   subscribeToUserCloud,
+  listenToOtherTabs,
   areDealsEqual,
   mergeDeals
 } from './utils/cloudSync';
@@ -176,19 +177,16 @@ export default function App() {
           unsubscribeSnapshot = subscribeToUserCloud(
             currentUser, 
             (remoteDeals) => {
-              if (!isInitialCloudLoad.current) {
-                const sanitizedRemote = remoteDeals.map((deal) => ({
-                  ...deal,
-                  developerOrAgency: sanitizeDeveloperName(deal.developerOrAgency),
-                }));
-                
-                if (!areDealsEqual(dealsRef.current, sanitizedRemote)) {
-                  lastSyncedJson.current = JSON.stringify(sanitizedRemote);
-                  setDeals(sanitizedRemote);
-                  saveDeals(sanitizedRemote);
-                }
+              const sanitizedRemote = remoteDeals.map((deal) => ({
+                ...deal,
+                developerOrAgency: sanitizeDeveloperName(deal.developerOrAgency),
+              }));
+              
+              if (!areDealsEqual(dealsRef.current, sanitizedRemote)) {
+                lastSyncedJson.current = JSON.stringify(sanitizedRemote);
+                setDeals(sanitizedRemote);
+                saveDeals(sanitizedRemote);
               }
-              isInitialCloudLoad.current = false;
             },
             (err) => {
               console.warn('Listener notice:', err);
@@ -212,12 +210,45 @@ export default function App() {
       }
     });
 
+    // Auto-revalidate seamlessly when the user switches tabs or refocuses the app
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          loadDealsFromCloud(currentUser).then(({ deals: remote }) => {
+            if (remote && remote.length > 0 && !areDealsEqual(dealsRef.current, remote)) {
+              const sanitized = remote.map((deal) => ({
+                ...deal,
+                developerOrAgency: sanitizeDeveloperName(deal.developerOrAgency),
+              }));
+              setDeals(sanitized);
+              saveDeals(sanitized);
+            }
+          }).catch(() => {});
+        }
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+
+    // Cross-tab broadcast listener (updates without F5 across tabs in same browser)
+    const unsubscribeTabs = listenToOtherTabs(() => {
+      const latestLocal = loadDeals();
+      if (!areDealsEqual(dealsRef.current, latestLocal)) {
+        setDeals(latestLocal);
+      }
+    });
+
     return () => {
       clearTimeout(fallbackTimer);
       unsubscribeAuth();
       if (unsubscribeSnapshot) {
         unsubscribeSnapshot();
       }
+      unsubscribeTabs();
+      window.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
     };
   }, []);
 

@@ -89,6 +89,21 @@ export function mergeDeals(cloudDeals: ContractDeal[], localDeals: ContractDeal[
 }
 
 /**
+ * Cross-tab instant communication channel
+ */
+export const dealsBroadcast = typeof window !== 'undefined' && 'BroadcastChannel' in window 
+  ? new BroadcastChannel('torresul_deals_sync')
+  : null;
+
+export function notifyOtherTabs() {
+  try {
+    dealsBroadcast?.postMessage({ type: 'DEALS_UPDATED', timestamp: Date.now() });
+  } catch (err) {
+    console.debug('BroadcastChannel notice:', err);
+  }
+}
+
+/**
  * Save a single deal into Firestore under users/{userId}/deals/{dealId}
  */
 export async function saveSingleDealToCloud(user: User, deal: ContractDeal): Promise<{ success: boolean; error?: any }> {
@@ -109,6 +124,7 @@ export async function saveSingleDealToCloud(user: User, deal: ContractDeal): Pro
       displayName: user.displayName || 'Corretor Torresul',
     }, { merge: true });
 
+    notifyOtherTabs();
     return { success: true };
   } catch (error: any) {
     console.warn('Erro ao salvar contrato no Firestore:', error);
@@ -124,6 +140,7 @@ export async function deleteSingleDealFromCloud(user: User, dealId: string): Pro
   try {
     const dealDocRef = doc(db, 'users', user.uid, 'deals', dealId);
     await deleteDoc(dealDocRef);
+    notifyOtherTabs();
     return { success: true };
   } catch (error: any) {
     console.warn('Erro ao excluir contrato do Firestore:', error);
@@ -159,6 +176,7 @@ export async function saveAllDealsToCloud(user: User, deals: ContractDeal[]): Pr
     }, { merge: true });
 
     await batch.commit();
+    notifyOtherTabs();
     return { success: true };
   } catch (error: any) {
     console.warn('Erro na gravação em lote do Firestore:', error);
@@ -209,6 +227,7 @@ export async function loadDealsFromCloud(user: User): Promise<{ deals: ContractD
 
 /**
  * Subscribe to real-time changes in users/{userId}/deals
+ * Delivers data from IndexedDB cache immediately, then streams live updates from Firestore server
  */
 export function subscribeToUserCloud(
   user: User, 
@@ -222,10 +241,6 @@ export function subscribeToUserCloud(
     return onSnapshot(
       dealsColRef, 
       (snapshot) => {
-        if (snapshot.metadata.hasPendingWrites) {
-          return;
-        }
-
         const deals: ContractDeal[] = [];
         snapshot.forEach((docSnap) => {
           const data = docSnap.data() as ContractDeal;
@@ -247,4 +262,22 @@ export function subscribeToUserCloud(
     if (onError) onError(err);
     return () => {};
   }
+}
+
+/**
+ * Register listener for changes from other tabs in the same browser
+ */
+export function listenToOtherTabs(callback: () => void): () => void {
+  if (!dealsBroadcast) return () => {};
+
+  const handleMessage = (event: MessageEvent) => {
+    if (event.data?.type === 'DEALS_UPDATED') {
+      callback();
+    }
+  };
+
+  dealsBroadcast.addEventListener('message', handleMessage);
+  return () => {
+    dealsBroadcast.removeEventListener('message', handleMessage);
+  };
 }

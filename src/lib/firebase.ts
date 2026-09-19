@@ -15,11 +15,13 @@ import {
 } from 'firebase/auth';
 import { 
   getFirestore, 
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   doc, 
   setDoc, 
   getDoc, 
-  onSnapshot,
-  getDocFromServer
+  onSnapshot
 } from 'firebase/firestore';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 import firebaseAppletConfig from '../../firebase-applet-config.json';
@@ -47,20 +49,19 @@ export const firebaseConfig = {
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 
-// Connect to provisioned Firestore database instance (default database)
-export const db = getFirestore(app);
-
-// Test connection safely on startup without throwing unhandled exceptions
-async function testConnection() {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn("Firebase client está no modo offline.");
-    }
-  }
+// Connect to provisioned Firestore database instance with persistent IndexedDB multi-tab cache
+// This enables instant sub-millisecond local loading and real-time live background updates
+let firestoreInstance: ReturnType<typeof getFirestore>;
+try {
+  firestoreInstance = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager(),
+    }),
+  });
+} catch {
+  firestoreInstance = getFirestore(app);
 }
-testConnection();
+export const db = firestoreInstance;
 
 // Initialize Firebase Analytics safely (client-side only when supported)
 export let analytics: ReturnType<typeof getAnalytics> | null = null;
