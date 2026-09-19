@@ -45,6 +45,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         return 'Informe um endereço de e-mail válido.';
       case 'auth/too-many-requests':
         return 'Muitas tentativas sem sucesso. Tente novamente em instantes.';
+      case 'auth/operation-not-allowed':
+        return 'O método de E-mail e Senha ainda não foi ativado no Firebase Console. Ative o provedor "E-mail/senha" na aba "Sign-in method" da Autenticação do Firebase.';
       case 'auth/network-request-failed':
         return 'Sem conexão com a internet. Verifique sua rede.';
       default:

@@ -81,12 +81,22 @@ export default function App() {
 
   // Monitor Auth state & perform cloud sync
   useEffect(() => {
-    // Check if user came back from a redirect login on mobile
-    checkRedirectLogin();
+    // Fallback timer ensures UI is never stuck on loading screen
+    const fallbackTimer = setTimeout(() => {
+      setAuthChecking(false);
+    }, 1200);
+
+    // Check if user came back from a redirect login on mobile safely
+    try {
+      checkRedirectLogin();
+    } catch {
+      // ignore
+    }
 
     let unsubscribeSnapshot: (() => void) | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+      clearTimeout(fallbackTimer);
       if (currentUser) {
         // Enforce 7-day session validity rule
         if (isSessionExpired(7)) {
@@ -162,6 +172,7 @@ export default function App() {
     });
 
     return () => {
+      clearTimeout(fallbackTimer);
       unsubscribeAuth();
       if (unsubscribeSnapshot) {
         unsubscribeSnapshot();

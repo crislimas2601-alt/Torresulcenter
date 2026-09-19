@@ -25,7 +25,7 @@ import { getAnalytics, isSupported } from 'firebase/analytics';
 import firebaseAppletConfig from '../../firebase-applet-config.json';
 
 // Configuração do projeto Firebase com suporte transparente tanto para o AI Studio quanto para Vercel / ambiente externo
-const activeApiKey = import.meta.env.VITE_FIREBASE_API_KEY || (firebaseAppletConfig as any)?.apiKey || "AIzaSyAhDV0XPf2bH30B84Wr7fjkoNF84iiE62U";
+const activeApiKey = import.meta.env.VITE_FIREBASE_API_KEY || (firebaseAppletConfig as any)?.apiKey || "AIzaSyB7f0uh8ZwYIGMSvO67T4t0II4q0p3sfUk";
 const activeAuthDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || (firebaseAppletConfig as any)?.authDomain || "torresulcenter-c527c.firebaseapp.com";
 const activeProjectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || (firebaseAppletConfig as any)?.projectId || "torresulcenter-c527c";
 const activeStorageBucket = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || (firebaseAppletConfig as any)?.storageBucket || "torresulcenter-c527c.firebasestorage.app";
