@@ -19,7 +19,6 @@ import {
 import { AppToolMode } from '../types';
 import { TorreSulLogo } from './TorresulLogo';
 import { User, logoutUser } from '../lib/firebase';
-import sidebarBgImage from '../assets/images/sidebar_premium_red_top_down_1789674732097.jpg';
 
 interface SidebarProps {
   currentMode: AppToolMode;
@@ -108,22 +107,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 bg-[#12141a] border-r border-zinc-800 shadow-xl md:shadow-none flex flex-col transition-all duration-200 ease-in-out md:static md:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-50 bg-gradient-to-b from-white via-slate-900 to-black border-r border-slate-800 shadow-xl md:shadow-none flex flex-col transition-all duration-200 ease-in-out md:static md:translate-x-0 ${
           isOpenMobile ? 'translate-x-0 w-64' : '-translate-x-full'
         } ${isCollapsed ? 'md:w-18' : 'md:w-60'}`}
       >
-        {/* Brand Header */}
-        <div className="p-3.5 border-b border-zinc-800/90 flex items-center justify-between text-white bg-zinc-950/50">
+        {/* Brand Header (White top) */}
+        <div className="p-3.5 border-b border-slate-200/90 flex items-center justify-between text-slate-900 bg-white/95">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-md bg-zinc-900 p-0.5 flex items-center justify-center shrink-0 border border-zinc-800">
+            <div className="w-8 h-8 rounded-md bg-slate-50 p-0.5 flex items-center justify-center shrink-0 border border-slate-200 shadow-2xs">
               <TorreSulLogo size={24} className="w-6 h-6 text-red-600" />
             </div>
             {!isCollapsed && (
               <div className="min-w-0">
-                <span className="font-bold text-xs tracking-wider text-white font-heading truncate block">
+                <span className="font-extrabold text-xs tracking-wider text-slate-900 font-heading truncate block">
                   TORRESUL
                 </span>
-                <p className="text-[10px] text-zinc-400 truncate font-normal">
+                <p className="text-[10px] text-slate-500 truncate font-medium">
                   Sistema Comercial
                 </p>
               </div>
@@ -134,7 +133,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               type="button"
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="hidden md:flex p-1.5 text-zinc-400 hover:text-white rounded-md hover:bg-zinc-800 transition cursor-pointer"
+              className="hidden md:flex p-1.5 text-slate-500 hover:text-slate-900 rounded-md hover:bg-slate-100 transition cursor-pointer"
               title={isCollapsed ? "Expandir barra lateral" : "Recolher barra lateral"}
             >
               <Layers className="w-4 h-4" />
@@ -142,15 +141,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               type="button"
               onClick={onCloseMobile}
-              className="md:hidden text-zinc-400 hover:text-white p-1 rounded-md cursor-pointer"
+              className="md:hidden text-slate-500 hover:text-slate-900 p-1 rounded-md cursor-pointer hover:bg-slate-100"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Top Google Cloud Auth & User Status */}
-        <div ref={settingsRef} className="p-2.5 border-b border-zinc-800/60 bg-zinc-950/30 relative z-50">
+        {/* Top User Status (Transition zone) */}
+        <div ref={settingsRef} className="p-2.5 border-b border-slate-200/60 bg-white/40 backdrop-blur-xs relative z-50">
           
           {/* Settings & Auth Popup Modal */}
           {isSettingsOpen && (
@@ -249,7 +248,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
 
           {/* User Banner at Top */}
-          <div className="flex items-center justify-between p-2 rounded-md bg-zinc-900/90 border border-zinc-800">
+          <div className="flex items-center justify-between p-2 rounded-md bg-white/90 border border-slate-200 shadow-2xs">
             <div 
               onClick={() => setIsSettingsOpen(!isSettingsOpen)}
               className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer select-none"
@@ -258,20 +257,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <img
                   src={user.photoURL}
                   alt={user.displayName || 'Corretor'}
-                  className="w-6 h-6 rounded-full object-cover ring-1 ring-zinc-700 shrink-0"
+                  className="w-6 h-6 rounded-full object-cover ring-1 ring-slate-300 shrink-0"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-6 h-6 rounded-full bg-zinc-800 text-zinc-200 flex items-center justify-center font-bold text-[10px] shrink-0 border border-zinc-700">
+                <div className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
                   {user?.displayName ? user.displayName.charAt(0).toUpperCase() : (user?.email ? user.email.charAt(0).toUpperCase() : 'TS')}
                 </div>
               )}
               {!isCollapsed && (
                 <div className="truncate">
-                  <span className="font-semibold text-white block truncate text-xs">
+                  <span className="font-semibold text-slate-900 block truncate text-xs">
                     {user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'Corretor'}
                   </span>
-                  <span className="text-[10px] text-zinc-400 font-medium block truncate flex items-center gap-1.5 mt-0.5">
+                  <span className="text-[10px] text-slate-500 font-medium block truncate flex items-center gap-1.5 mt-0.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                     Sincronizado
                   </span>
@@ -281,7 +280,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               type="button"
               onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-              className="p-1 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition cursor-pointer"
+              className="p-1 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded transition cursor-pointer"
               title="Conta & Sincronização"
             >
               <Settings className="w-3.5 h-3.5" />
@@ -289,12 +288,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* Navigation Section */}
+        {/* Navigation Section (Dark / Black zone) */}
         <div className="p-2 flex-1 overflow-y-auto space-y-4">
           <div>
             {!isCollapsed && (
               <div className="px-2 mb-2 flex items-center justify-between">
-                <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                   Módulos
                 </span>
               </div>
@@ -317,15 +316,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     title={tool.title}
                     className={`w-full text-left p-2 rounded-lg transition-all cursor-pointer flex items-center gap-2.5 group relative border ${
                       isActive
-                        ? 'bg-zinc-800/90 border-zinc-700 text-white shadow-2xs'
-                        : 'bg-transparent border-transparent text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+                        ? 'bg-slate-800 border-slate-700 text-white shadow-xs'
+                        : 'bg-transparent border-transparent text-slate-300 hover:bg-slate-850 hover:text-white'
                     }`}
                   >
                     <div
                       className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-all ${
                         isActive
                           ? 'bg-red-600 text-white'
-                          : 'bg-zinc-900 text-zinc-400 group-hover:text-zinc-200 border border-zinc-800'
+                          : 'bg-slate-800 text-slate-300 group-hover:text-white border border-slate-700'
                       }`}
                     >
                       <Icon className="w-3.5 h-3.5" />
@@ -334,11 +333,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {!isCollapsed && (
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1 mb-0.5">
-                          <span className={`text-xs font-medium truncate transition-colors ${isActive ? 'text-white font-semibold' : 'text-zinc-300 group-hover:text-white'}`}>
+                          <span className={`text-xs font-medium truncate transition-colors ${isActive ? 'text-white font-semibold' : 'text-slate-200 group-hover:text-white'}`}>
                             {tool.title}
                           </span>
                         </div>
-                        <p className={`text-[10px] truncate transition-colors ${isActive ? 'text-zinc-300' : 'text-zinc-500 group-hover:text-zinc-400'}`}>
+                        <p className={`text-[10px] truncate transition-colors ${isActive ? 'text-slate-300' : 'text-slate-400 group-hover:text-slate-300'}`}>
                           {tool.subtitle}
                         </p>
                       </div>
@@ -348,7 +347,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         className={`text-[9px] px-1.5 py-0.5 rounded font-medium border shrink-0 transition-colors ${
                           isActive 
                             ? 'bg-red-600 text-white border-red-500' 
-                            : 'bg-zinc-800 text-zinc-300 border-zinc-700'
+                            : 'bg-slate-800 text-slate-300 border-slate-700'
                         }`}
                       >
                         {tool.badge}
@@ -362,7 +361,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Bottom spacer / Minimal status */}
-        <div className="p-3 border-t border-zinc-800/80 text-center text-[10px] text-zinc-500 bg-zinc-950/40">
+        <div className="p-3 border-t border-slate-800 text-center text-[10px] text-slate-500 bg-black/50">
           {!isCollapsed && <span>Torresul Imobiliária • {new Date().getFullYear()}</span>}
         </div>
       </aside>
