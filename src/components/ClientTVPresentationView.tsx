@@ -26,14 +26,14 @@ export const ClientTVPresentationView: React.FC<ClientTVPresentationViewProps> =
   const reductionPercentage = Math.round((monthsSaved / loan.termMonths) * 100);
 
   return (
-    <div className="fixed inset-0 z-50 bg-gradient-to-b from-white via-slate-900 to-black text-slate-900 overflow-y-auto p-6 sm:p-10 flex flex-col justify-between">
-      {/* Top Bar (White / Light zone) */}
-      <div className="flex items-center justify-between pb-6 border-b border-slate-200/80">
+    <div className="fixed inset-0 z-50 bg-gradient-to-b from-white via-slate-950 to-black text-white overflow-y-auto p-6 sm:p-10 flex flex-col justify-between">
+      {/* Top Bar (White Clean Area) */}
+      <div className="flex items-center justify-between pb-6 border-b border-slate-200/40">
         <TorresulLogo variant="red" size="lg" />
 
         <div className="flex items-center gap-4">
           <div className="text-right hidden sm:block">
-            <span className="text-xs text-slate-600 font-medium block">Projeção de Amortização Financeira</span>
+            <span className="text-xs text-slate-700 font-medium block">Projeção de Amortização Financeira</span>
             <span className="text-xs font-semibold text-slate-900 uppercase tracking-wider block">
               Simulação Comercial
             </span>
@@ -54,7 +54,7 @@ export const ClientTVPresentationView: React.FC<ClientTVPresentationViewProps> =
       <div className="my-auto py-8 max-w-6xl mx-auto w-full space-y-8">
         {/* Main Headline */}
         <div className="text-center space-y-3">
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white font-heading">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white font-heading drop-shadow-xs">
             De <span className="line-through text-slate-400">{originalYears} anos</span> para{' '}
             <span className="text-red-500">
               {payoffYears} {payoffYears === 1 ? 'ano' : 'anos'}{payoffMonths > 0 ? ` e ${payoffMonths} m` : ''}
@@ -68,7 +68,7 @@ export const ClientTVPresentationView: React.FC<ClientTVPresentationViewProps> =
         {/* 3 Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* Card 1: Economia em Juros */}
-          <div className="p-6 sm:p-7 rounded-lg bg-slate-950/85 border border-slate-800 text-white flex flex-col justify-between shadow-lg backdrop-blur-xs">
+          <div className="p-6 sm:p-7 rounded-xl bg-slate-900/95 border border-slate-800 text-white flex flex-col justify-between shadow-xl">
             <div>
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -91,7 +91,7 @@ export const ClientTVPresentationView: React.FC<ClientTVPresentationViewProps> =
           </div>
 
           {/* Card 2: Parcelas Eliminadas */}
-          <div className="p-6 sm:p-7 rounded-lg bg-slate-950/85 border border-slate-800 text-white flex flex-col justify-between shadow-lg backdrop-blur-xs">
+          <div className="p-6 sm:p-7 rounded-xl bg-slate-900/95 border border-slate-800 text-white flex flex-col justify-between shadow-xl">
             <div>
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -114,7 +114,7 @@ export const ClientTVPresentationView: React.FC<ClientTVPresentationViewProps> =
           </div>
 
           {/* Card 3: Tempo Economizado */}
-          <div className="p-6 sm:p-7 rounded-lg bg-slate-950/85 border border-slate-800 text-white flex flex-col justify-between shadow-lg backdrop-blur-xs">
+          <div className="p-6 sm:p-7 rounded-xl bg-slate-900/95 border border-slate-800 text-white flex flex-col justify-between shadow-xl">
             <div>
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -138,7 +138,7 @@ export const ClientTVPresentationView: React.FC<ClientTVPresentationViewProps> =
         </div>
 
         {/* Input Parameters Reference Strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-lg bg-slate-950/60 border border-slate-800 text-xs text-slate-300">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300">
           <div>
             <span className="text-slate-400 block text-[11px]">Aporte extra mensal:</span>
             <span className="font-semibold text-slate-200 tabular-nums">
@@ -166,7 +166,7 @@ export const ClientTVPresentationView: React.FC<ClientTVPresentationViewProps> =
         </div>
 
         {/* Institutional Guarantee Bar */}
-        <div className="p-4 rounded-lg bg-slate-950/40 border border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+        <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="w-4 h-4 text-red-500 shrink-0" />
             <span>
