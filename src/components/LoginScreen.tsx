@@ -336,6 +336,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   onClick={() => {
                     setMode('register');
                     setErrorMessage(null);
+                    setErrorCode(null);
                     setSuccessMessage(null);
                   }}
                   className="font-medium text-slate-900 hover:underline cursor-pointer"
@@ -353,6 +354,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   onClick={() => {
                     setMode('login');
                     setErrorMessage(null);
+                    setErrorCode(null);
                     setSuccessMessage(null);
                   }}
                   className="font-medium text-slate-900 hover:underline cursor-pointer"
@@ -369,6 +371,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   onClick={() => {
                     setMode('login');
                     setErrorMessage(null);
+                    setErrorCode(null);
                     setSuccessMessage(null);
                   }}
                   className="font-medium text-slate-900 hover:underline cursor-pointer"

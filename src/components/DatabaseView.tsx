@@ -40,6 +40,7 @@ interface DatabaseViewProps {
   onExportCsv: () => void;
   onExportJson: () => void;
   onTriggerImport: () => void;
+  onDownloadTemplate?: () => void;
   onClearAll: () => void;
 }
 
@@ -52,6 +53,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
   onExportCsv,
   onExportJson,
   onTriggerImport,
+  onDownloadTemplate,
   onClearAll,
 }) => {
   // State for search and filters
@@ -420,7 +422,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
               id="btn-db-export-csv"
               onClick={onExportCsv}
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer border border-slate-200"
-              title="Exportar todos os dados para Excel / CSV"
+              title="Exportar todos os dados para planilha Excel (.csv)"
             >
               <FileSpreadsheet className="w-4 h-4 text-slate-600" />
               <span>Exportar Excel</span>
@@ -430,20 +432,32 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
               id="btn-db-export-json"
               onClick={onExportJson}
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer border border-slate-200"
-              title="Download do arquivo JSON completo do banco"
+              title="Download do arquivo JSON de backup"
             >
               <Download className="w-4 h-4 text-slate-600" />
               <span>Backup JSON</span>
             </button>
 
+            {onDownloadTemplate && (
+              <button
+                id="btn-db-download-template"
+                onClick={onDownloadTemplate}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-600 bg-white hover:bg-slate-50 rounded-xl transition cursor-pointer border border-slate-200"
+                title="Baixar planilha modelo do Excel (.xlsx) para preenchimento"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                <span>Modelo Excel</span>
+              </button>
+            )}
+
             <button
-              id="btn-db-import-json"
+              id="btn-db-import-file"
               onClick={onTriggerImport}
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer border border-slate-200"
-              title="Restaurar dados a partir de arquivo de backup"
+              title="Importar contratos de arquivo Excel (.xlsx, .xls, .csv) ou JSON"
             >
               <Upload className="w-4 h-4 text-slate-600" />
-              <span>Restaurar</span>
+              <span>Importar</span>
             </button>
 
             <button
@@ -831,7 +845,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
               className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition flex items-center gap-2 cursor-pointer"
             >
               <Upload className="w-4 h-4 text-slate-500" />
-              <span>Restaurar Backup</span>
+              <span>Importar Planilha / Backup</span>
             </button>
           </div>
         </div>

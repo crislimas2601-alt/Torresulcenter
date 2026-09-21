@@ -23,6 +23,7 @@ import {
 } from './utils/storage';
 import { loadProposals } from './utils/proposalStorage';
 import { formatCurrency, formatDateBR, getPropertyTypeLabel, getDealCategoryLabel } from './utils/formatters';
+import { parseDealsFromFile, downloadExcelTemplate } from './utils/excelImporter';
 import { Header } from './components/Header';
 import { MetricCards } from './components/MetricCards';
 import { CashFlowForecast } from './components/CashFlowForecast';
@@ -548,26 +549,24 @@ export default function App() {
     showToast('Backup do banco de dados exportado com sucesso!');
   };
 
-  // Handle hidden file input for JSON import
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle hidden file input for Excel (.xlsx, .xls, .csv) and JSON import
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const json = JSON.parse(event.target?.result as string);
-        if (Array.isArray(json)) {
-          handleImportDeals(json);
-        } else {
-          showToast('Arquivo inválido: o formato precisa ser uma lista de contratos.');
-        }
-      } catch (err) {
-        showToast('Erro ao carregar o arquivo JSON.');
+    try {
+      showToast('Lendo planilha / arquivo...');
+      const { deals: parsedDeals, error } = await parseDealsFromFile(file);
+      if (error || !parsedDeals || parsedDeals.length === 0) {
+        showToast(error || 'Nenhum contrato pôde ser extraído do arquivo.');
+        return;
       }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
+      handleImportDeals(parsedDeals);
+    } catch (err: any) {
+      showToast(err?.message || 'Erro ao carregar o arquivo.');
+    } finally {
+      e.target.value = '';
+    }
   };
 
   // If verifying authentication status on first load, render loading state
@@ -600,12 +599,12 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-row font-sans">
       
-      {/* Hidden file input for DB restore */}
+      {/* Hidden file input for DB restore / import */}
       <input
         type="file"
         ref={fileInputRef}
         onChange={handleFileInputChange}
-        accept=".json"
+        accept=".xlsx, .xls, .csv, .json"
         className="hidden"
       />
 
@@ -721,6 +720,7 @@ export default function App() {
                     onExportCsv={handleExportCsv}
                     onExportJson={handleExportJson}
                     onTriggerImport={() => fileInputRef.current?.click()}
+                    onDownloadTemplate={downloadExcelTemplate}
                     onClearAll={handleClearAll}
                   />
                 </section>
