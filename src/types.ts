@@ -418,6 +418,7 @@ export interface ProposalData {
   fgts: number;
   subsidio: number;
   ato: number;
+  dataAto?: string;
   parcelamentos: ParcelamentoItem[];
   reforcos: ReforcoItem[];
   avalista: AvalistaData;

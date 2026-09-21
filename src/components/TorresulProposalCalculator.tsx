@@ -11,6 +11,7 @@ import { ReforcosSection } from './ReforcosSection';
 import { AvalistaSection } from './AvalistaSection';
 import { FloatingBalancePill } from './FloatingBalancePill';
 import { TorreSulLogo } from './TorresulLogo';
+import { ClientProposalSummaryModal } from './ClientProposalSummaryModal';
 import {
   RotateCcw,
   Calculator,
@@ -20,6 +21,7 @@ import {
   ArrowRight,
   ArrowLeft,
   Edit3,
+  MessageCircle,
 } from 'lucide-react';
 
 const DRAFT_STORAGE_KEY = 'torresul_draft_proposal_v3';
@@ -161,6 +163,7 @@ export const TorresulProposalCalculator: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [isEditingMinuta, setIsEditingMinuta] = useState(false);
   const [customMinutaText, setCustomMinutaText] = useState('');
+  const [showClientSummaryModal, setShowClientSummaryModal] = useState(false);
 
   // Auto-save draft on change
   useEffect(() => {
@@ -634,7 +637,7 @@ export const TorresulProposalCalculator: React.FC = () => {
             </div>
 
             {/* Subsídio & Ato */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2 border-t border-slate-100">
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">
                   Subsídio (se houver)
@@ -649,7 +652,7 @@ export const TorresulProposalCalculator: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-800 mb-1">
-                  Valor do Ato (Assinatura)
+                  Valor do Ato
                 </label>
                 <CurrencyInput
                   id="ato_input"
@@ -658,6 +661,22 @@ export const TorresulProposalCalculator: React.FC = () => {
                   placeholder="0,00"
                   className="font-bold text-slate-900 border-slate-300"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1">
+                  Data de Pagamento do Ato
+                </label>
+                <input
+                  type="date"
+                  id="data_ato_input"
+                  value={proposal.dataAto || ''}
+                  onChange={(e) => handleUpdate({ dataAto: e.target.value })}
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+                <span className="text-[10px] text-slate-400 mt-0.5 block">
+                  Ex: data limite combinada com o cliente
+                </span>
               </div>
             </div>
           </div>
@@ -748,22 +767,35 @@ export const TorresulProposalCalculator: React.FC = () => {
       {/* TAB 2: PROPOSTA FINALIZADA P/ ENVIO (MINUTA) matching Video (0:14 - 0:19) */}
       {activeTab === 'minuta' && (
         <div className="space-y-4">
-          {/* Breadcrumb / Return to Tab 1 */}
-          <div className="flex items-center justify-between pb-1 flex-wrap gap-2">
-            <button
-              type="button"
-              id="btn_voltar_valores"
-              onClick={() => {
-                setActiveTab('valores');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors cursor-pointer shadow-2xs"
-            >
-              <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
-              <span>← Voltar e Ajustar Valores (Aba 1)</span>
-            </button>
+          {/* Breadcrumb / Return to Tab 1 and Client Summary Action */}
+          <div className="flex items-center justify-between pb-1 flex-wrap gap-2.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                id="btn_voltar_valores"
+                onClick={() => {
+                  setActiveTab('valores');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors cursor-pointer shadow-2xs"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
+                <span>← Voltar e Ajustar Valores (Aba 1)</span>
+              </button>
 
-            <span className="text-xs text-slate-500 font-medium">
+              <button
+                type="button"
+                id="btn_enviar_resumo_cliente"
+                onClick={() => setShowClientSummaryModal(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 active:scale-95 border border-emerald-300 rounded-lg transition-all cursor-pointer shadow-2xs"
+                title="Enviar resumo ao cliente no WhatsApp"
+              >
+                <MessageCircle className="w-4 h-4 text-emerald-600" />
+                <span>Enviar Resumo ao Cliente</span>
+              </button>
+            </div>
+
+            <span className="text-xs text-slate-500 font-medium hidden sm:inline">
               Texto formatado pronto para cópia e emissão de contrato
             </span>
           </div>
@@ -849,6 +881,14 @@ export const TorresulProposalCalculator: React.FC = () => {
         proposal={proposal}
         onBalanceEntrada={handleBalanceEntrada}
         onBalanceFinanciamento={handleBalanceFinanciamento}
+      />
+
+      {/* Client Proposal WhatsApp Summary Modal */}
+      <ClientProposalSummaryModal
+        isOpen={showClientSummaryModal}
+        onClose={() => setShowClientSummaryModal(false)}
+        proposal={proposal}
+        onUpdateProposal={handleUpdate}
       />
     </div>
   );

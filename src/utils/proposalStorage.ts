@@ -1,4 +1,5 @@
 import { RealEstateProposal, ProposalStatus } from '../types';
+import { safeStorage } from './safeStorage';
 
 const STORAGE_KEY = 'torre_sul_proposals_v1';
 
@@ -121,9 +122,9 @@ export const INITIAL_SAMPLE_PROPOSALS: RealEstateProposal[] = [
 
 export function loadProposals(): RealEstateProposal[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = safeStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SAMPLE_PROPOSALS));
+      safeStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SAMPLE_PROPOSALS));
       return INITIAL_SAMPLE_PROPOSALS;
     }
     const parsed = JSON.parse(raw);
@@ -132,16 +133,16 @@ export function loadProposals(): RealEstateProposal[] {
     }
     return INITIAL_SAMPLE_PROPOSALS;
   } catch (err) {
-    console.error('Error loading proposals from localStorage:', err);
+    console.error('Error loading proposals from storage:', err);
     return INITIAL_SAMPLE_PROPOSALS;
   }
 }
 
 export function saveProposals(proposals: RealEstateProposal[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(proposals));
+    safeStorage.setItem(STORAGE_KEY, JSON.stringify(proposals));
   } catch (err) {
-    console.error('Error saving proposals to localStorage:', err);
+    console.error('Error saving proposals to storage:', err);
   }
 }
 
