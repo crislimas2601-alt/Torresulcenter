@@ -128,7 +128,8 @@ export const logoutGoogle = logoutUser;
 
 export const signInWithEmail = async (email: string, pass: string) => {
   try {
-    const res = await signInWithEmailAndPassword(auth, email.trim(), pass);
+    const cleanEmail = email.trim().toLowerCase();
+    const res = await signInWithEmailAndPassword(auth, cleanEmail, pass);
     saveSessionTimestamp();
     return res.user;
   } catch (error) {
@@ -139,7 +140,8 @@ export const signInWithEmail = async (email: string, pass: string) => {
 
 export const signUpWithEmail = async (email: string, pass: string, name?: string) => {
   try {
-    const res = await createUserWithEmailAndPassword(auth, email.trim(), pass);
+    const cleanEmail = email.trim().toLowerCase();
+    const res = await createUserWithEmailAndPassword(auth, cleanEmail, pass);
     if (name && name.trim()) {
       await updateProfile(res.user, { displayName: name.trim() });
     }
@@ -153,7 +155,8 @@ export const signUpWithEmail = async (email: string, pass: string, name?: string
 
 export const resetPasswordWithEmail = async (email: string) => {
   try {
-    await sendPasswordResetEmail(auth, email.trim());
+    const cleanEmail = email.trim().toLowerCase();
+    await sendPasswordResetEmail(auth, cleanEmail);
     return true;
   } catch (error) {
     console.error('Erro ao enviar recuperação de senha:', error);

@@ -23,28 +23,31 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [rememberSevenDays, setRememberSevenDays] = useState(true);
 
   // Status and feedback
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(expiredNotice);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const getFriendlyErrorMessage = (error: any): string => {
     const code = error?.code || '';
+    setErrorCode(code);
     switch (code) {
       case 'auth/invalid-credential':
       case 'auth/wrong-password':
       case 'auth/user-not-found':
-        return 'E-mail ou senha incorretos.';
+        return 'E-mail ou senha incorretos. Verifique se digitou corretamente ou redefina sua senha.';
       case 'auth/email-already-in-use':
-        return 'Este e-mail já está cadastrado no sistema.';
+        return 'Este e-mail já foi cadastrado anteriormente.';
       case 'auth/weak-password':
         return 'A senha deve conter no mínimo 6 caracteres.';
       case 'auth/invalid-email':
         return 'Informe um endereço de e-mail válido.';
       case 'auth/too-many-requests':
-        return 'Muitas tentativas sem sucesso. Tente novamente em instantes.';
+        return 'Muitas tentativas sem sucesso. Aguarde alguns instantes ou redefina sua senha.';
       case 'auth/operation-not-allowed':
         return 'O método de E-mail e Senha ainda não foi ativado no Firebase Console. Ative o provedor "E-mail/senha" na aba "Sign-in method" da Autenticação do Firebase.';
       case 'auth/network-request-failed':
@@ -57,9 +60,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setErrorCode(null);
     setSuccessMessage(null);
 
-    const cleanEmail = email.trim();
+    const cleanEmail = email.trim().toLowerCase();
 
     if (mode === 'reset') {
       if (!cleanEmail) {
@@ -69,7 +73,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       try {
         setIsLoading(true);
         await resetPasswordWithEmail(cleanEmail);
-        setSuccessMessage('As instruções de redefinição foram enviadas para seu e-mail.');
+        setSuccessMessage(`Enviamos um link de redefinição para ${cleanEmail}. Verifique sua caixa de entrada e spam.`);
       } catch (err: any) {
         setErrorMessage(getFriendlyErrorMessage(err));
       } finally {
@@ -89,7 +93,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         return;
       }
       if (password !== confirmPassword) {
-        setErrorMessage('As senhas não coincidem.');
+        setErrorMessage('As senhas não coincidem. Digite a mesma senha em ambos os campos.');
         return;
       }
     }
@@ -141,14 +145,53 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           
           {/* Messages */}
           {errorMessage && (
-            <div className="mb-5 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs leading-relaxed">
-              {errorMessage}
+            <div className="mb-5 p-3.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs leading-relaxed space-y-2">
+              <p className="font-medium">{errorMessage}</p>
+              
+              {/* Quick actions depending on error */}
+              {(errorCode === 'auth/invalid-credential' || errorCode === 'auth/wrong-password' || errorCode === 'auth/user-not-found') && mode === 'login' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('reset');
+                    setErrorMessage(null);
+                  }}
+                  className="inline-flex items-center text-xs font-semibold text-red-800 underline hover:text-red-950 cursor-pointer"
+                >
+                  Esqueceu a senha? Clique para redefinir agora →
+                </button>
+              )}
+
+              {errorCode === 'auth/email-already-in-use' && mode === 'register' && (
+                <div className="flex items-center gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode('login');
+                      setErrorMessage(null);
+                    }}
+                    className="text-xs font-semibold text-red-800 underline hover:text-red-950 cursor-pointer"
+                  >
+                    Fazer Login →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode('reset');
+                      setErrorMessage(null);
+                    }}
+                    className="text-xs font-semibold text-red-800 underline hover:text-red-950 cursor-pointer"
+                  >
+                    Redefinir Senha →
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
           {successMessage && (
-            <div className="mb-5 p-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 text-xs leading-relaxed">
-              {successMessage}
+            <div className="mb-5 p-3.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs leading-relaxed">
+              <p className="font-medium">{successMessage}</p>
             </div>
           )}
 
@@ -179,6 +222,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => setEmail((prev) => prev.trim())}
                 placeholder="seu.email@torresul.com.br"
                 className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition-colors"
               />
@@ -231,14 +275,24 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   Confirmar Senha
                 </label>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Repita sua senha"
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition-colors"
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repita sua senha"
+                    className="w-full pl-3.5 pr-10 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
             )}
 
