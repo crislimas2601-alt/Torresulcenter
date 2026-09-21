@@ -1,4 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
+import { safeStorage } from '../utils/safeStorage';
 import { 
   getAuth, 
   GoogleAuthProvider, 
@@ -170,15 +171,15 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const saveSessionTimestamp = () => {
   try {
-    localStorage.setItem(SESSION_TIMESTAMP_KEY, Date.now().toString());
+    safeStorage.setItem(SESSION_TIMESTAMP_KEY, Date.now().toString());
   } catch {
-    // localStorage unavailable
+    // storage unavailable
   }
 };
 
 export const isSessionExpired = (maxDays = 7): boolean => {
   try {
-    const timestampStr = localStorage.getItem(SESSION_TIMESTAMP_KEY);
+    const timestampStr = safeStorage.getItem(SESSION_TIMESTAMP_KEY);
     if (!timestampStr) {
       // If user is logged in but has no timestamp recorded yet, record it now
       saveSessionTimestamp();
@@ -198,7 +199,7 @@ export const isSessionExpired = (maxDays = 7): boolean => {
 
 export const clearSessionTimestamp = () => {
   try {
-    localStorage.removeItem(SESSION_TIMESTAMP_KEY);
+    safeStorage.removeItem(SESSION_TIMESTAMP_KEY);
   } catch {
     // ignore
   }

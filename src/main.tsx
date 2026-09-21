@@ -2,6 +2,7 @@ import { Component, ErrorInfo, ReactNode, StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import { safeStorage } from './utils/safeStorage';
 
 // Unregister any stale dev service workers that might intercept dev server requests
 if ('serviceWorker' in navigator && import.meta.env.DEV) {
@@ -38,8 +39,10 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
   handleReset = () => {
     try {
-      localStorage.clear();
-      sessionStorage.clear();
+      safeStorage.clear();
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.clear();
+      }
     } catch {
       // ignore
     }

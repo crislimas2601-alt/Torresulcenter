@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { safeStorage } from '../utils/safeStorage';
 
 interface Props {
   children?: ReactNode;
@@ -51,6 +52,9 @@ export class ErrorBoundary extends Component<Props, State> {
               <button
                 type="button"
                 onClick={() => {
+                  try {
+                    safeStorage.clear();
+                  } catch {}
                   window.location.reload();
                 }}
                 className="flex-1 py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition cursor-pointer"

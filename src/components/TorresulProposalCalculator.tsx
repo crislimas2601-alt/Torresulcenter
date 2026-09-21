@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { safeStorage } from '../utils/safeStorage';
 import { ProposalData, ParcelamentoItem, ReforcoItem } from '../types';
 import { calculateProposalTotals, round2 } from '../utils/calculator';
 import { formatBRL, formatDateBR } from '../utils/formatter';
@@ -149,7 +150,7 @@ export const TorresulProposalCalculator: React.FC = () => {
   // Load draft or fallback to VIDEO_DEFAULT_PROPOSAL
   const [proposal, setProposal] = useState<ProposalData>(() => {
     try {
-      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+      const saved = safeStorage.getItem(DRAFT_STORAGE_KEY);
       if (saved) {
         return JSON.parse(saved);
       }
@@ -168,7 +169,7 @@ export const TorresulProposalCalculator: React.FC = () => {
   // Auto-save draft on change
   useEffect(() => {
     try {
-      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(proposal));
+      safeStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(proposal));
     } catch (e) {
       console.warn('Error writing draft:', e);
     }

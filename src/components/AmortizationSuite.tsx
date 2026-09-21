@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { safeStorage } from '../utils/safeStorage';
 import { LoanInput, ExtraAmortizationInput } from '../types';
 import { runSimulation } from '../utils/financialCalculations';
 import { AmortizationHeader } from './AmortizationHeader';
@@ -43,10 +44,10 @@ export const AmortizationSuite: React.FC = () => {
   // PWA & Iframe Installation Detection
   const { isInstallable, install, isInIframe, openInNewTab } = usePWAInstall();
 
-  // Load from localStorage or defaults, sanitizing any corrupted numeric values
+  // Load from storage or defaults, sanitizing any corrupted numeric values
   const [loan, setLoan] = useState<LoanInput>(() => {
     try {
-      const savedStr = localStorage.getItem('torresul_loan_input_v1');
+      const savedStr = safeStorage.getItem('torresul_loan_input_v1');
       if (savedStr) {
         const saved = JSON.parse(savedStr);
         let prop = Number(saved.propertyValue);
@@ -76,7 +77,7 @@ export const AmortizationSuite: React.FC = () => {
 
   const [extra, setExtra] = useState<ExtraAmortizationInput>(() => {
     try {
-      const saved = localStorage.getItem('torresul_extra_amort_v1');
+      const saved = safeStorage.getItem('torresul_extra_amort_v1');
       return saved ? JSON.parse(saved) : DEFAULT_EXTRA;
     } catch {
       return DEFAULT_EXTRA;
@@ -94,7 +95,7 @@ export const AmortizationSuite: React.FC = () => {
   // Persistence
   useEffect(() => {
     try {
-      localStorage.setItem('torresul_loan_input_v1', JSON.stringify(loan));
+      safeStorage.setItem('torresul_loan_input_v1', JSON.stringify(loan));
     } catch (e) {
       console.warn('Storage unavailable', e);
     }
@@ -102,7 +103,7 @@ export const AmortizationSuite: React.FC = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('torresul_extra_amort_v1', JSON.stringify(extra));
+      safeStorage.setItem('torresul_extra_amort_v1', JSON.stringify(extra));
     } catch (e) {
       console.warn('Storage unavailable', e);
     }

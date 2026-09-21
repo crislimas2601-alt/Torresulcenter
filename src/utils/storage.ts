@@ -1,4 +1,5 @@
 import { ContractDeal, Installment, InstallmentStatus, FinancialStats, MonthlyForecastItem } from '../types';
+import { safeStorage } from './safeStorage';
 
 const STORAGE_KEY = 'torre_sul_comissoes_deals_v2';
 
@@ -325,9 +326,9 @@ export const INITIAL_SAMPLE_DEALS: ContractDeal[] = [
 
 export function loadDeals(): ContractDeal[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = safeStorage.getItem(STORAGE_KEY);
     if (raw === null) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+      safeStorage.setItem(STORAGE_KEY, JSON.stringify([]));
       return [];
     }
     const parsed = JSON.parse(raw);
@@ -426,40 +427,40 @@ export function loadDeals(): ContractDeal[] {
         };
       });
 
-      // If any existing deals stored in localStorage had Torresul as developer, rewrite clean state
+      // If any existing deals stored in storage had Torresul as developer, rewrite clean state
       const hadChanges = parsed.some((rawItem: any, idx: number) => {
         const rawDev = rawItem?.developerOrAgency ? String(rawItem.developerOrAgency) : '';
         return rawDev !== loadedDeals[idx]?.developerOrAgency;
       });
 
       if (hadChanges) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(loadedDeals));
+        safeStorage.setItem(STORAGE_KEY, JSON.stringify(loadedDeals));
       }
 
       return loadedDeals;
     }
     return [];
   } catch (err) {
-    console.error('Error loading deals from localStorage:', err);
+    console.error('Error loading deals from storage:', err);
     return [];
   }
 }
 
 export function saveDeals(deals: ContractDeal[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(deals));
+    safeStorage.setItem(STORAGE_KEY, JSON.stringify(deals));
   } catch (err) {
-    console.error('Error saving deals to localStorage:', err);
+    console.error('Error saving deals to storage:', err);
   }
 }
 
 export function resetToSampleDeals(): ContractDeal[] {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SAMPLE_DEALS));
+  safeStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SAMPLE_DEALS));
   return INITIAL_SAMPLE_DEALS;
 }
 
 export function clearAllDeals(): ContractDeal[] {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+  safeStorage.setItem(STORAGE_KEY, JSON.stringify([]));
   return [];
 }
 
