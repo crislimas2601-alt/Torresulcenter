@@ -60,15 +60,22 @@ export function generateContractText(proposal: ProposalData): string {
   lines.push(`Valor total da entrada: ${formatBRL(totals.totalEntradaSemJuros)}`);
   lines.push('');
 
-  // 5. Valor do ato
-  lines.push(`Valor do ato (a ser pago na assinatura do contrato de compra e venda): ${formatBRL(proposal.ato || 0)}`);
+  // 5. Valor do ato: somente a data e valor (sem 'na assinatura')
+  const dataAtoFormatada = proposal.dataAto ? formatDateBR(proposal.dataAto) : '';
+  if (dataAtoFormatada) {
+    lines.push(`Valor do ato: ${dataAtoFormatada} - ${formatBRL(proposal.ato || 0)}`);
+  } else {
+    lines.push(`Valor do ato: ${formatBRL(proposal.ato || 0)}`);
+  }
   lines.push('');
 
-  // 6. Parcelamentos
+  // 6. Parcelamentos: rotulados como 'Parcelamento 1', 'Parcelamento 2', etc.
   if (proposal.parcelamentos && proposal.parcelamentos.length > 0) {
     proposal.parcelamentos.forEach((p, idx) => {
-      const defaultTitle = idx === 0 ? 'Parcelamento (Mensal)' : `Parcelamento ${idx + 1}`;
-      const title = p.title?.trim() || defaultTitle;
+      let title = p.title?.trim() || `Parcelamento ${idx + 1}`;
+      if (title.toLowerCase().includes('parcelamento (mensal)') || title.toLowerCase() === 'parcelamento') {
+        title = `Parcelamento ${idx + 1}`;
+      }
       const recalculated = totals.parcelamentosRecalculados.find((r) => r.id === p.id) || p;
       const vcto = p.dataVencimento ? formatDateBR(p.dataVencimento) : 'A definir';
       const parcelasStr = String(p.quantidadeParcelas).padStart(2, '0');

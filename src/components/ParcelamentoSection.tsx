@@ -27,7 +27,7 @@ export const ParcelamentoSection: React.FC<ParcelamentoSectionProps> = ({
     const nextIndex = parcelamentos.length + 1;
     const base: ParcelamentoItem = {
       id: `p_${Date.now()}`,
-      title: nextIndex === 1 ? 'Parcelamento (Mensal)' : `Parcelamento ${nextIndex}`,
+      title: `Parcelamento ${nextIndex}`,
       totalSemJuros: saldoRestanteEntrada > 0 ? saldoRestanteEntrada : 0,
       jurosAoMes: 1.0,
       quantidadeParcelas: 12,

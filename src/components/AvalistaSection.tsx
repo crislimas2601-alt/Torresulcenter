@@ -77,6 +77,14 @@ export const AvalistaSection: React.FC<AvalistaSectionProps> = ({
   correspondente = 'FAST',
   onChangeCorrespondente,
 }) => {
+  const safeAvalista: AvalistaData = avalista || {
+    temAvalista: false,
+    nome: '',
+    email: '',
+    telefone: '',
+    profissao: '',
+  };
+
   const baseImovelComissao =
     valorImovelComissao !== undefined && valorImovelComissao > 0
       ? valorImovelComissao
@@ -186,9 +194,9 @@ export const AvalistaSection: React.FC<AvalistaSectionProps> = ({
           <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
             <button
               type="button"
-              onClick={() => onChangeAvalista({ ...avalista, temAvalista: false })}
+              onClick={() => onChangeAvalista({ ...safeAvalista, temAvalista: false })}
               className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
-                !avalista.temAvalista
+                !safeAvalista.temAvalista
                   ? 'bg-white text-slate-800 shadow-xs'
                   : 'text-slate-500 hover:text-slate-700'
               }`}
@@ -197,9 +205,9 @@ export const AvalistaSection: React.FC<AvalistaSectionProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => onChangeAvalista({ ...avalista, temAvalista: true })}
+              onClick={() => onChangeAvalista({ ...safeAvalista, temAvalista: true })}
               className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
-                avalista.temAvalista
+                safeAvalista.temAvalista
                   ? 'bg-purple-600 text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-700'
               }`}
@@ -209,7 +217,7 @@ export const AvalistaSection: React.FC<AvalistaSectionProps> = ({
           </div>
         </div>
 
-        {avalista.temAvalista && (
+        {safeAvalista.temAvalista && (
           <div className="space-y-3 pt-1">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>

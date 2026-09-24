@@ -18,6 +18,25 @@
     <meta name="apple-mobile-web-app-title" content="Comissões" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <script>
+      // Desativa e desregistra imediatamente qualquer Service Worker antigo ou cache zumbi de versões anteriores
+      if (typeof window !== 'undefined') {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(regs) {
+            for (var i = 0; i < regs.length; i++) {
+              regs[i].unregister();
+            }
+          }).catch(function() {});
+        }
+        if ('caches' in window) {
+          caches.keys().then(function(keys) {
+            for (var i = 0; i < keys.length; i++) {
+              caches.delete(keys[i]);
+            }
+          }).catch(function() {});
+        }
+      }
+    </script>
     <meta property="og:title" content="Controle de Comissões - Corretor de Imóveis" />
     <meta property="og:description" content="Gestão financeira pessoal para corretores de imóveis: contratos fechados, cálculo de comissões e bônus, previsão de fluxo de caixa para os próximos meses e histórico de recebíveis." />
     <meta property="og:type" content="website" />

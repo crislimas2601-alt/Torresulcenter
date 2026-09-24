@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react';
 import fs from 'fs';
 import path from 'path';
 import {defineConfig, Plugin} from 'vite';
-import {VitePWA} from 'vite-plugin-pwa';
 
 // LINT.IfChange(aistudio_media_plugin)
 function aistudioMediaPlugin(): Plugin {
@@ -71,51 +70,6 @@ export default defineConfig(() => {
       react(),
       tailwindcss(),
       aistudioMediaPlugin(),
-      VitePWA({
-        registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg'],
-        manifest: {
-          id: '/',
-          name: 'Controle de Comissões - Corretor de Imóveis',
-          short_name: 'Comissões',
-          description: 'Gestão financeira pessoal para corretores de imóveis: contratos, comissões, bônus e previsão de fluxo de caixa.',
-          theme_color: '#0f172a',
-          background_color: '#f8fafc',
-          display: 'standalone',
-          start_url: '/',
-          scope: '/',
-          icons: [
-            {
-              src: '/pwa-192x192.png',
-              sizes: '192x192',
-              type: 'image/png',
-              purpose: 'any',
-            },
-            {
-              src: '/pwa-512x512.png',
-              sizes: '512x512',
-              type: 'image/png',
-              purpose: 'any',
-            },
-            {
-              src: '/pwa-maskable-512x512.png',
-              sizes: '512x512',
-              type: 'image/png',
-              purpose: 'maskable',
-            },
-          ],
-        },
-        workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
-          cleanupOutdatedCaches: true,
-          clientsClaim: true,
-          skipWaiting: true,
-          maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
-        },
-        devOptions: {
-          enabled: false,
-        },
-      }),
     ],
     build: {
       chunkSizeWarningLimit: 1500,

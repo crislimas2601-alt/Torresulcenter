@@ -35,6 +35,7 @@ export const VIDEO_DEFAULT_PROPOSAL: ProposalData = {
   temAdimplencia: true,
   valorAdimplencia: 500.00,
   ato: 4990.09,
+  dataAto: '2026-09-23',
   financiamento: 172693.23,
   fgts: 2477.59,
   subsidio: 0,
@@ -43,7 +44,7 @@ export const VIDEO_DEFAULT_PROPOSAL: ProposalData = {
   parcelamentos: [
     {
       id: 'p1_video',
-      title: 'Parcelamento (Mensal)',
+      title: 'Parcelamento 1',
       totalSemJuros: 8000.00,
       jurosAoMes: 0,
       quantidadeParcelas: 4,
@@ -109,6 +110,97 @@ export const VIDEO_DEFAULT_PROPOSAL: ProposalData = {
   createdAt: new Date().toISOString(),
 };
 
+/**
+ * Sanitizes any raw or older version of ProposalData loaded from localStorage or cache
+ * to ensure no missing keys, undefined avalista, or legacy titles cause runtime errors.
+ */
+export function sanitizeProposalData(raw: any): ProposalData {
+  if (!raw || typeof raw !== 'object') {
+    return { ...VIDEO_DEFAULT_PROPOSAL };
+  }
+
+  const rawParcelamentos = Array.isArray(raw.parcelamentos) ? raw.parcelamentos : VIDEO_DEFAULT_PROPOSAL.parcelamentos;
+  const cleanParcelamentos = rawParcelamentos.map((p: any, idx: number) => {
+    let title = String(p?.title || `Parcelamento ${idx + 1}`).trim();
+    if (title.toLowerCase().includes('parcelamento (mensal)') || title.toLowerCase() === 'parcelamento') {
+      title = `Parcelamento ${idx + 1}`;
+    }
+    return {
+      id: String(p?.id || `p_${idx}_${Date.now()}`),
+      title,
+      totalSemJuros: Number(p?.totalSemJuros) || 0,
+      jurosAoMes: Number(p?.jurosAoMes) || 0,
+      quantidadeParcelas: Number(p?.quantidadeParcelas) || 1,
+      dataVencimento: String(p?.dataVencimento || ''),
+      tipoCalculo: (p?.tipoCalculo === 'composto' ? 'composto' : 'simples') as 'simples' | 'composto',
+      temJurosDiluidos: Boolean(p?.temJurosDiluidos),
+      jurosAdimplenciaDiluido: Number(p?.jurosAdimplenciaDiluido) || 0,
+      jurosReforcosDiluido: Number(p?.jurosReforcosDiluido) || 0,
+      valorParcelaCalculada: Number(p?.valorParcelaCalculada) || 0,
+      valorTotalComJuros: Number(p?.valorTotalComJuros) || 0,
+    };
+  });
+
+  const rawReforcos = Array.isArray(raw.reforcos) ? raw.reforcos : (VIDEO_DEFAULT_PROPOSAL.reforcos || []);
+  const cleanReforcos = rawReforcos.map((r: any, idx: number) => ({
+    id: String(r?.id || `r_${idx}_${Date.now()}`),
+    title: String(r?.title || `Reforço ${idx + 1}`),
+    valor: Number(r?.valor) || 0,
+    tipoVencimento: (r?.tipoVencimento === 'texto' ? 'texto' : 'data') as 'data' | 'texto',
+    dataVencimento: String(r?.dataVencimento || ''),
+    textoVencimento: String(r?.textoVencimento || ''),
+  }));
+
+  const cleanAvalista = {
+    temAvalista: Boolean(raw.avalista?.temAvalista),
+    nome: String(raw.avalista?.nome || ''),
+    rg: String(raw.avalista?.rg || ''),
+    cpf: String(raw.avalista?.cpf || ''),
+    estadoCivil: String(raw.avalista?.estadoCivil || ''),
+    endereco: String(raw.avalista?.endereco || ''),
+    email: String(raw.avalista?.email || ''),
+    telefone: String(raw.avalista?.telefone || ''),
+    profissao: String(raw.avalista?.profissao || ''),
+  };
+
+  return {
+    id: String(raw.id || `prop_${Date.now()}`),
+    nomeCliente: String(raw.nomeCliente || ''),
+    numeroUnidade: String(raw.numeroUnidade || ''),
+    valorImovel: Number(raw.valorImovel) || 0,
+    temAdimplencia: Boolean(raw.temAdimplencia),
+    valorAdimplencia: Number(raw.valorAdimplencia) || 0,
+    temJurosAdimplencia: Boolean(raw.temJurosAdimplencia),
+    percentualJurosAdimplencia: Number(raw.percentualJurosAdimplencia) || 0,
+    tipoJurosAdimplencia: raw.tipoJurosAdimplencia || 'total',
+    temImpostoAdimplencia: Boolean(raw.temImpostoAdimplencia),
+    percentualImpostoAdimplencia: Number(raw.percentualImpostoAdimplencia) || 0,
+    valorImpostoAdimplencia: Number(raw.valorImpostoAdimplencia) || 0,
+    ato: Number(raw.ato) || 0,
+    dataAto: String(raw.dataAto || ''),
+    financiamento: Number(raw.financiamento) || 0,
+    fgts: Number(raw.fgts) || 0,
+    subsidio: Number(raw.subsidio) || 0,
+    bancoFinanciamento: String(raw.bancoFinanciamento || 'CEF'),
+    correspondente: String(raw.correspondente || 'FAST'),
+    parcelamentos: cleanParcelamentos,
+    reforcos: cleanReforcos,
+    avalista: cleanAvalista,
+    promissoria: Boolean(raw.promissoria ?? true),
+    ficaramMoveis: Boolean(raw.ficaramMoveis),
+    descricaoMoveis: String(raw.descricaoMoveis || ''),
+    valorImovelComissao: Number(raw.valorImovelComissao) || Number(raw.valorImovel) || 0,
+    comissaoPercent: Number(raw.comissaoPercent) || 6.0,
+    comissaoValor: Number(raw.comissaoValor) || 0,
+    comissaoManual: Boolean(raw.comissaoManual),
+    tipoDivisaoComissao: raw.tipoDivisaoComissao || '100',
+    momentoPrimeiro50: String(raw.momentoPrimeiro50 || 'no ato da assinatura do contrato de compra e venda'),
+    momentoSegundo50: String(raw.momentoSegundo50 || 'na assinatura do financiamento habitacional.'),
+    pagamentoComissao: String(raw.pagamentoComissao || '100% na liberação de recurso do financiamento.'),
+    createdAt: String(raw.createdAt || new Date().toISOString()),
+  };
+}
+
 export const INITIAL_EMPTY_PROPOSAL: ProposalData = {
   nomeCliente: '',
   numeroUnidade: '',
@@ -147,17 +239,17 @@ export const TorresulProposalCalculator: React.FC = () => {
   // Navigation Tabs: 1. Preenchimento dos Valores vs 2. Proposta finalizada p/envio
   const [activeTab, setActiveTab] = useState<'valores' | 'minuta'>('valores');
 
-  // Load draft or fallback to VIDEO_DEFAULT_PROPOSAL
+  // Load draft or fallback to VIDEO_DEFAULT_PROPOSAL with robust schema sanitization
   const [proposal, setProposal] = useState<ProposalData>(() => {
     try {
       const saved = safeStorage.getItem(DRAFT_STORAGE_KEY);
       if (saved) {
-        return JSON.parse(saved);
+        return sanitizeProposalData(JSON.parse(saved));
       }
     } catch (e) {
       console.warn('Error reading saved draft:', e);
     }
-    return VIDEO_DEFAULT_PROPOSAL;
+    return sanitizeProposalData(VIDEO_DEFAULT_PROPOSAL);
   });
 
   // Minuta Text State & Controls
