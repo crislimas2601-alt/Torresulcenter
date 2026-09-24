@@ -544,11 +544,6 @@ export const ContractForm: React.FC<ContractFormProps> = ({
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-zinc-900">SAC (Caixa)</span>
-                {loan.system === 'SAC' && (
-                  <span className="text-[10px] font-semibold bg-zinc-900 text-white px-1.5 py-0.5 rounded">
-                    Recomendado
-                  </span>
-                )}
               </div>
               <p className="text-[10px] text-zinc-500 mt-1 leading-tight">
                 Parcelas decrescentes. Amortização constante todo mês.
