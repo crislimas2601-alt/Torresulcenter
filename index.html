@@ -1,8 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR" class="notranslate" translate="no">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="google" content="notranslate" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
@@ -19,7 +20,7 @@
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <script>
-      // Desativa e desregistra imediatamente qualquer Service Worker antigo ou cache zumbi de versões anteriores
+      // 1. Desativa e desregistra imediatamente qualquer Service Worker antigo ou cache zumbi de versões anteriores
       if (typeof window !== 'undefined') {
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.getRegistrations().then(function(regs) {
@@ -35,6 +36,31 @@
             }
           }).catch(function() {});
         }
+      }
+
+      // 2. Blindagem contra Google Tradutor, Edge Tradutor e extensões do navegador que alteram o DOM e quebram o React (removeChild / insertBefore)
+      if (typeof Node === 'function' && Node.prototype) {
+        var origRemoveChild = Node.prototype.removeChild;
+        Node.prototype.removeChild = function(child) {
+          if (child.parentNode !== this) {
+            if (child.parentNode) {
+              return child.parentNode.removeChild(child);
+            }
+            return child;
+          }
+          return origRemoveChild.apply(this, arguments);
+        };
+
+        var origInsertBefore = Node.prototype.insertBefore;
+        Node.prototype.insertBefore = function(newNode, referenceNode) {
+          if (referenceNode && referenceNode.parentNode !== this) {
+            if (referenceNode.parentNode) {
+              return referenceNode.parentNode.insertBefore(newNode, referenceNode);
+            }
+            return this.appendChild(newNode);
+          }
+          return origInsertBefore.apply(this, arguments);
+        };
       }
     </script>
     <meta property="og:title" content="Controle de Comissões - Corretor de Imóveis" />

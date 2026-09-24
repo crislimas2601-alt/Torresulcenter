@@ -31,6 +31,32 @@ if (typeof window !== 'undefined') {
   });
 }
 
+// Patch Node.prototype.removeChild and insertBefore to completely prevent crashes
+// caused by Google Translate, Edge Translator, or browser extensions injecting/wrapping DOM nodes
+if (typeof Node === 'function' && Node.prototype) {
+  const origRemoveChild = Node.prototype.removeChild;
+  Node.prototype.removeChild = function <T extends Node>(child: T): T {
+    if (child.parentNode !== this) {
+      if (child.parentNode) {
+        return child.parentNode.removeChild(child) as T;
+      }
+      return child;
+    }
+    return origRemoveChild.apply(this, [child]) as T;
+  };
+
+  const origInsertBefore = Node.prototype.insertBefore;
+  Node.prototype.insertBefore = function <T extends Node>(newNode: T, referenceNode: Node | null): T {
+    if (referenceNode && referenceNode.parentNode !== this) {
+      if (referenceNode.parentNode) {
+        return referenceNode.parentNode.insertBefore(newNode, referenceNode) as T;
+      }
+      return this.appendChild(newNode) as T;
+    }
+    return origInsertBefore.apply(this, [newNode, referenceNode]) as T;
+  };
+}
+
 interface ErrorBoundaryProps {
   children: ReactNode;
 }
@@ -48,11 +74,34 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    const msg = String(error?.message || '').toLowerCase();
+    // Google Translate / Edge Translator / Browser extension DOM mutation:
+    // "Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node."
+    if (
+      msg.includes('removechild') ||
+      msg.includes('insertbefore') ||
+      msg.includes('not a child of this node') ||
+      msg.includes('não é filho deste nó')
+    ) {
+      console.warn('Silent auto-recovery from DOM translate/extension mutation:', msg);
+      return { hasError: false };
+    }
     return { hasError: true, error };
   }
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('App Error caught by boundary:', error, errorInfo);
+
+    const msg = String(error?.message || '').toLowerCase();
+    if (
+      msg.includes('removechild') ||
+      msg.includes('insertbefore') ||
+      msg.includes('not a child of this node') ||
+      msg.includes('não é filho deste nó')
+    ) {
+      this.setState({ hasError: false, error: undefined });
+      return;
+    }
 
     // Auto-heal on first occurrence per session (e.g. stale chunk or schema mismatch)
     try {
@@ -106,7 +155,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
             </div>
             <h2 className="text-xl font-bold text-white">Recuperação do Sistema</h2>
             <p className="text-sm text-slate-300 leading-relaxed">
-              O seu navegador continha uma versão em cache antiga da aplicação. Clique abaixo para atualizar e acessar normalmente.
+              O seu navegador encontrou uma inconsistência de exibição temporária. Clique abaixo para reiniciar com segurança.
             </p>
             {this.state.error && (
               <div className="text-[11px] text-slate-400 bg-slate-900/80 p-2.5 rounded-lg border border-slate-700 font-mono text-left max-h-24 overflow-y-auto break-words">
