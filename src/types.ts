@@ -415,6 +415,10 @@ export interface ProposalData {
   financiamento: number;
   bancoFinanciamento?: string;
   correspondente?: string;
+  mostrarParcelaFinanciamento?: boolean;
+  valorParcelaFinanciamentoEstimada?: number;
+  prazoFinanciamentoMeses?: number;
+  sistemaAmortizacaoFinanciamento?: 'SAC' | 'PRICE';
   fgts: number;
   subsidio: number;
   ato: number;

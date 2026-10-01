@@ -13,6 +13,8 @@ import { AvalistaSection } from './AvalistaSection';
 import { FloatingBalancePill } from './FloatingBalancePill';
 import { TorreSulLogo } from './TorresulLogo';
 import { ClientProposalSummaryModal } from './ClientProposalSummaryModal';
+import { DocumentacaoProjecaoTab } from './DocumentacaoProjecaoTab';
+import { ProposalClientTVView } from './ProposalClientTVView';
 import {
   RotateCcw,
   Calculator,
@@ -23,6 +25,8 @@ import {
   ArrowLeft,
   Edit3,
   MessageCircle,
+  Landmark,
+  Tv,
 } from 'lucide-react';
 
 const DRAFT_STORAGE_KEY = 'torresul_draft_proposal_v3';
@@ -236,8 +240,8 @@ export const INITIAL_EMPTY_PROPOSAL: ProposalData = {
 };
 
 export const TorresulProposalCalculator: React.FC = () => {
-  // Navigation Tabs: 1. Preenchimento dos Valores vs 2. Proposta finalizada p/envio
-  const [activeTab, setActiveTab] = useState<'valores' | 'minuta'>('valores');
+  // Navigation Tabs: 1. Preenchimento dos Valores vs 2. Proposta finalizada vs 3. Projeção de Documentação vs 4. Visualização Cliente
+  const [activeTab, setActiveTab] = useState<'valores' | 'minuta' | 'documentacao' | 'cliente'>('valores');
 
   // Load draft or fallback to VIDEO_DEFAULT_PROPOSAL with robust schema sanitization
   const [proposal, setProposal] = useState<ProposalData>(() => {
@@ -415,13 +419,13 @@ export const TorresulProposalCalculator: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Tabs matching Video: 1. Preenchimento dos Valores vs 2. Proposta finalizada p/envio */}
-      <div className="border-b border-slate-200 bg-white rounded-t-2xl px-5 pt-3 flex items-center gap-8 shadow-xs">
+      {/* Main Tabs: 1. Preenchimento dos Valores vs 2. Proposta finalizada vs 3. Projeção de Documentação */}
+      <div className="border-b border-slate-200 bg-white rounded-t-2xl px-5 pt-3 flex items-center gap-4 sm:gap-8 shadow-xs overflow-x-auto">
         <button
           type="button"
           id="tab_preenchimento_valores"
           onClick={() => setActiveTab('valores')}
-          className={`pb-3.5 text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+          className={`pb-3.5 text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
             activeTab === 'valores'
               ? 'border-red-600 text-red-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -435,7 +439,7 @@ export const TorresulProposalCalculator: React.FC = () => {
           type="button"
           id="tab_proposta_finalizada"
           onClick={() => setActiveTab('minuta')}
-          className={`pb-3.5 text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+          className={`pb-3.5 text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
             activeTab === 'minuta'
               ? 'border-red-600 text-red-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -445,6 +449,40 @@ export const TorresulProposalCalculator: React.FC = () => {
           <span>2. Proposta finalizada p/envio</span>
           <span className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded font-black tracking-wide">
             MINUTA
+          </span>
+        </button>
+
+        <button
+          type="button"
+          id="tab_projecao_documentacao"
+          onClick={() => setActiveTab('documentacao')}
+          className={`pb-3.5 text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'documentacao'
+              ? 'border-red-600 text-red-600'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Landmark className="w-4 h-4" />
+          <span>3. Projeção de Documentação</span>
+          <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded font-black tracking-wide">
+            BLUMENAU / INDAIAL
+          </span>
+        </button>
+
+        <button
+          type="button"
+          id="tab_visualizacao_cliente"
+          onClick={() => setActiveTab('cliente')}
+          className={`pb-3.5 text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'cliente'
+              ? 'border-red-600 text-red-600'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Tv className="w-4 h-4" />
+          <span>4. Visualização Cliente</span>
+          <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-800 rounded font-black tracking-wide">
+            MODO TV
           </span>
         </button>
       </div>
@@ -840,19 +878,49 @@ export const TorresulProposalCalculator: React.FC = () => {
               Dica: Os cálculos e juros são atualizados em tempo real conforme você digita.
             </p>
 
-            <button
-              type="button"
-              id="btn_ver_proposta_finalizada"
-              onClick={() => {
-                setActiveTab('minuta');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold text-sm rounded-xl shadow-md transition-all cursor-pointer"
-            >
-              <FileText className="w-4 h-4" />
-              <span>Ver Proposta finalizada p/envio</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                id="btn_ver_projecao_doc"
+                onClick={() => {
+                  setActiveTab('documentacao');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="inline-flex items-center justify-center gap-2 px-4 py-3.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-bold text-sm rounded-xl shadow-md transition-all cursor-pointer"
+              >
+                <Landmark className="w-4 h-4 text-red-400" />
+                <span>3. Documentação</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                id="btn_ver_modo_tv"
+                onClick={() => {
+                  setActiveTab('cliente');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="inline-flex items-center justify-center gap-2 px-4 py-3.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-bold text-sm rounded-xl shadow-md transition-all cursor-pointer"
+              >
+                <Tv className="w-4 h-4 text-red-500" />
+                <span>4. Visualização Cliente (Modo TV)</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                id="btn_ver_proposta_finalizada"
+                onClick={() => {
+                  setActiveTab('minuta');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="inline-flex items-center justify-center gap-2 px-5 py-3.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold text-sm rounded-xl shadow-md transition-all cursor-pointer"
+              >
+                <FileText className="w-4 h-4" />
+                <span>2. Proposta p/ envio</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -885,6 +953,34 @@ export const TorresulProposalCalculator: React.FC = () => {
               >
                 <MessageCircle className="w-4 h-4 text-emerald-600" />
                 <span>Enviar Resumo ao Cliente</span>
+              </button>
+
+              <button
+                type="button"
+                id="btn_ir_projecao_doc"
+                onClick={() => {
+                  setActiveTab('documentacao');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                title="Ir para a Projeção de Custos de Documentação"
+              >
+                <Landmark className="w-3.5 h-3.5 text-red-500" />
+                <span>Documentação (Aba 3) →</span>
+              </button>
+
+              <button
+                type="button"
+                id="btn_ir_modo_tv"
+                onClick={() => {
+                  setActiveTab('cliente');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                title="Abrir Visualização Cliente (Modo TV)"
+              >
+                <Tv className="w-3.5 h-3.5 text-red-500" />
+                <span>Visualização Cliente (Modo TV) →</span>
               </button>
             </div>
 
@@ -967,6 +1063,23 @@ export const TorresulProposalCalculator: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* TAB 3: PROJEÇÃO DE DOCUMENTAÇÃO (BLUMENAU / INDAIAL) */}
+      {activeTab === 'documentacao' && (
+        <DocumentacaoProjecaoTab
+          proposal={proposal}
+          onUpdateProposal={handleUpdate}
+        />
+      )}
+
+      {/* TAB 4: VISUALIZAÇÃO CLIENTE (MODO TV / APRESENTAÇÃO) */}
+      {activeTab === 'cliente' && (
+        <ProposalClientTVView
+          proposal={proposal}
+          onExitFullscreen={() => setActiveTab('valores')}
+          onUpdateProposal={handleUpdate}
+        />
       )}
 
       {/* Floating Balance Pill (Sticky bottom-right) */}
