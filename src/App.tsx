@@ -302,8 +302,8 @@ export default function App() {
     return calculateFinancialStats(deals);
   }, [deals]);
 
-  // Handle toggle installment status (e.g. mark as received)
-  const handleToggleInstallmentStatus = (dealId: string, installmentId: string) => {
+  // Handle toggle installment status (e.g. mark as received, optionally with past date)
+  const handleToggleInstallmentStatus = (dealId: string, installmentId: string, customReceivedDate?: string) => {
     let targetDeal: ContractDeal | null = null;
 
     setDeals((prevDeals) => {
@@ -312,11 +312,23 @@ export default function App() {
 
         const updatedInstallments: Installment[] = deal.installments.map((inst) => {
           if (inst.id !== installmentId) return inst;
+
+          // If a custom receipt date was explicitly set (e.g. user chose past date)
+          if (customReceivedDate !== undefined) {
+            return {
+              ...inst,
+              status: 'recebido',
+              receivedDate: customReceivedDate,
+            };
+          }
+
           const nextStatus: InstallmentStatus = inst.status === 'recebido' ? 'pendente' : 'recebido';
           return {
             ...inst,
             status: nextStatus,
-            receivedDate: nextStatus === 'recebido' ? new Date().toISOString().slice(0, 10) : undefined,
+            receivedDate: nextStatus === 'recebido'
+              ? (inst.receivedDate || inst.dueDate || new Date().toISOString().slice(0, 10))
+              : undefined,
           };
         });
 

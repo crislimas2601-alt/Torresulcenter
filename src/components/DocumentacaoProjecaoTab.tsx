@@ -42,6 +42,7 @@ export const DocumentacaoProjecaoTab: React.FC<DocumentacaoProjecaoTabProps> = (
   const [subsidio, setSubsidio] = useState<number>(() => proposal.subsidio || 0);
 
   // Itens de custo da documentação
+  const [taxaEngenharia, setTaxaEngenharia] = useState<number>(750);
   const [despachante, setDespachante] = useState<number>(980);
   const [registroImovel, setRegistroImovel] = useState<number>(3500);
   const [certidaoImovel, setCertidaoImovel] = useState<number>(100);
@@ -99,6 +100,7 @@ export const DocumentacaoProjecaoTab: React.FC<DocumentacaoProjecaoTabProps> = (
   // 5. Total Geral da Projeção de Documentação
   const totalProjecao = round2(
     tarifaBancariaFinal +
+    taxaEngenharia +
     despachante +
     registroImovel +
     itbiFinal +
@@ -139,24 +141,27 @@ ${fgts > 0 ? `• FGTS Utilizado: ${formatBRL(fgts)}\n` : ''}${subsidio > 0 ? `�
 📋 *DETALHAMENTO DOS CUSTOS DE DOCUMENTAÇÃO:*
 
 1️⃣ *Tarifa Bancária Caixa:* ${formatBRL(tarifaBancariaFinal)}
-   _(Engenharia e avaliação inclusa - paga no dia da assinatura na Caixa)_
+   _(Tarifa do contrato CEF - paga na assinatura na Caixa)_
 
-2️⃣ *Despachante Imobiliário:* ${formatBRL(despachante)}
+2️⃣ *Taxa de Engenharia Caixa:* ${formatBRL(taxaEngenharia)}
+   _(Vistoria e laudo de avaliação técnica do imóvel)_
+
+3️⃣ *Despachante Imobiliário:* ${formatBRL(despachante)}
    _(Acompanhamento do processo - pago após assinatura do contrato)_
 
-3️⃣ *Registro de Imóveis (Estimativa):* ${formatBRL(registroImovel)}
+4️⃣ *Registro de Imóveis (Estimativa):* ${formatBRL(registroImovel)}
    _(Emolumentos do Cartório de Registro de Imóveis)_
 
-4️⃣ *ITBI (Imposto de Transmissão):* ${formatBRL(itbiFinal)}
+5️⃣ *ITBI (Imposto de Transmissão):* ${formatBRL(itbiFinal)}
    _(Prefeitura Municipal de ${descCidade})_
 
-5️⃣ *Certidão do Imóvel (Inteiro Teor c/ Ônus e Ações):* ${formatBRL(certidaoImovel)}
+6️⃣ *Certidão do Imóvel (Inteiro Teor c/ Ônus e Ações):* ${formatBRL(certidaoImovel)}
    _(Validade de 30 dias)_
 
-6️⃣ *Certidão de Estado Civil Atualizada:* ${formatBRL(certidaoEstadoCivil)}
+7️⃣ *Certidão de Estado Civil Atualizada:* ${formatBRL(certidaoEstadoCivil)}
    _(Validade de 90 dias - digital ou física)_
 
-7️⃣ *Assinatura Digital:* ${formatBRL(assinaturaDigitalTotal)} (${quantidadeCpfs} CPF${quantidadeCpfs > 1 ? 's' : ''})
+8️⃣ *Assinatura Digital:* ${formatBRL(assinaturaDigitalTotal)} (${quantidadeCpfs} CPF${quantidadeCpfs > 1 ? 's' : ''})
    _(Certificado digital para formalização eletrônica)_
 
 ---------------------------------------------
@@ -489,12 +494,37 @@ ${fgts > 0 ? `• FGTS Utilizado: ${formatBRL(fgts)}\n` : ''}${subsidio > 0 ? `�
             )}
           </div>
 
-          {/* 2. Despachante Imobiliário */}
+          {/* 2. Taxa de Engenharia (Caixa) */}
           <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-sm text-slate-900">
-                  2. Despachante Imobiliário
+                  2. Taxa de Engenharia Caixa (Vistoria / Avaliação)
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-slate-100 text-slate-700">
+                  R$ 750,00 fixo
+                </span>
+              </div>
+              <p className="text-xs text-slate-500">
+                Laudo de avaliação técnica e vistoria do imóvel pelo engenheiro credenciado da Caixa Econômica Federal.
+              </p>
+            </div>
+
+            <div className="w-full sm:w-48">
+              <CurrencyInput
+                value={taxaEngenharia}
+                onChange={setTaxaEngenharia}
+                className="w-full text-sm font-bold text-slate-900 border-slate-300 text-right"
+              />
+            </div>
+          </div>
+
+          {/* 3. Despachante Imobiliário */}
+          <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm text-slate-900">
+                  3. Despachante Imobiliário
                 </span>
                 <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-slate-100 text-slate-700">
                   Após assinatura contrato
@@ -514,13 +544,13 @@ ${fgts > 0 ? `• FGTS Utilizado: ${formatBRL(fgts)}\n` : ''}${subsidio > 0 ? `�
             </div>
           </div>
 
-          {/* 3. Registro de Imóvel */}
+          {/* 4. Registro de Imóvel */}
           <div className="py-4 space-y-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-sm text-slate-900">
-                    3. Registro de Imóvel
+                    4. Registro de Imóvel
                   </span>
                   <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-slate-100 text-slate-700">
                     Estimativa média +/- R$ 3.500,00
@@ -552,13 +582,13 @@ ${fgts > 0 ? `• FGTS Utilizado: ${formatBRL(fgts)}\n` : ''}${subsidio > 0 ? `�
             </div>
           </div>
 
-          {/* 4. ITBI (Imposto de Transmissão) */}
+          {/* 5. ITBI (Imposto de Transmissão) */}
           <div className="py-4 space-y-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-sm text-slate-900">
-                    4. ITBI (Imposto de Transmissão de Bens Imóveis)
+                    5. ITBI (Imposto de Transmissão de Bens Imóveis)
                   </span>
                   <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-slate-100 text-slate-700">
                     {cidade === 'blumenau' ? 'Blumenau: 1% Financ / 2% Entrada' : 'Indaial: 1,5% Financ / 2% Entrada'}
@@ -606,12 +636,12 @@ ${fgts > 0 ? `• FGTS Utilizado: ${formatBRL(fgts)}\n` : ''}${subsidio > 0 ? `�
             </div>
           </div>
 
-          {/* 5. Certidão do Imóvel */}
+          {/* 6. Certidão do Imóvel */}
           <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-sm text-slate-900">
-                  5. Certidão do Imóvel (Inteiro Teor c/ Ônus e Ações)
+                  6. Certidão do Imóvel (Inteiro Teor c/ Ônus e Ações)
                 </span>
                 <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-slate-100 text-slate-700">
                   Validade 30 dias
@@ -631,12 +661,12 @@ ${fgts > 0 ? `• FGTS Utilizado: ${formatBRL(fgts)}\n` : ''}${subsidio > 0 ? `�
             </div>
           </div>
 
-          {/* 6. Certidão de Estado Civil */}
+          {/* 7. Certidão de Estado Civil */}
           <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-sm text-slate-900">
-                  6. Certidão de Estado Civil Atualizada
+                  7. Certidão de Estado Civil Atualizada
                 </span>
                 <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-slate-100 text-slate-700">
                   Validade 90 dias
@@ -656,12 +686,12 @@ ${fgts > 0 ? `• FGTS Utilizado: ${formatBRL(fgts)}\n` : ''}${subsidio > 0 ? `�
             </div>
           </div>
 
-          {/* 7. Assinatura Digital */}
+          {/* 8. Assinatura Digital */}
           <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-sm text-slate-900">
-                  7. Assinatura Digital
+                  8. Assinatura Digital
                 </span>
                 <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-slate-100 text-slate-700">
                   R$ 54,00 por CPF

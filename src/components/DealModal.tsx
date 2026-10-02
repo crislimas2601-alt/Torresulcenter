@@ -7,7 +7,9 @@ import {
   Percent, 
   Award,
   Wallet,
-  AlertCircle
+  AlertCircle,
+  CheckCircle2,
+  Calendar
 } from 'lucide-react';
 import { ContractDeal, Installment, PropertyType, DealCategory } from '../types';
 import { formatCurrency, generateInstallmentDates, parseBRLInput } from '../utils/formatters';
@@ -329,40 +331,45 @@ export const DealModal: React.FC<DealModalProps> = ({
         ? Math.round((netComm - amountPerInstallment * (count - 1)) * 100) / 100
         : amountPerInstallment;
 
+      const oldInst = installments[i];
       const title =
-        count === 1
+        oldInst?.title ||
+        (count === 1
           ? 'Parcela Única - Escritura/Sinal'
           : i === 0
           ? '1ª Parcela - Ato / Sinal'
           : i === 1
           ? '2ª Parcela - Financiamento'
-          : `${i + 1}ª Parcela`;
+          : `${i + 1}ª Parcela`);
 
       list.push({
-        id: `inst-${Date.now()}-${i + 1}`,
+        id: oldInst?.id || `inst-${Date.now()}-${i + 1}`,
         dealId: dealToEdit?.id || 'temp',
         dealTitle: propertyTitle || 'Novo Imóvel',
         installmentNumber: i + 1,
         totalInstallments: count + (bonus > 0 ? 1 : 0),
         title,
         amount: Math.max(0, installmentAmount),
-        dueDate: dates[i] || startDate,
-        status: 'pendente',
+        dueDate: oldInst?.dueDate || dates[i] || startDate,
+        status: oldInst?.status || 'pendente',
+        receivedDate: oldInst?.receivedDate,
       });
     }
 
     // Add bonus installment if any
     if (bonus > 0) {
+      const oldBonus = installments.find((i) => i.isBonus);
       list.push({
-        id: `inst-${Date.now()}-bonus`,
+        id: oldBonus?.id || `inst-${Date.now()}-bonus`,
         dealId: dealToEdit?.id || 'temp',
         dealTitle: propertyTitle || 'Novo Imóvel',
         installmentNumber: count + 1,
         totalInstallments: count + 1,
-        title: bonusDesc ? `Bônus: ${bonusDesc}` : 'Bônus / Premiação Construtora',
+        title: bonusDesc ? `Bônus: ${bonusDesc}` : oldBonus?.title || 'Bônus / Premiação Construtora',
         amount: bonus,
-        dueDate: dates[dates.length - 1] || startDate,
-        status: 'pendente',
+        dueDate: oldBonus?.dueDate || dates[dates.length - 1] || startDate,
+        status: oldBonus?.status || 'pendente',
+        receivedDate: oldBonus?.receivedDate,
         isBonus: true,
       });
     }
@@ -377,6 +384,19 @@ export const DealModal: React.FC<DealModalProps> = ({
       numBonus,
       bonusDescription,
       firstDueDate
+    );
+  };
+
+  // Mark all installments as received (allowing past date)
+  const handleMarkAllReceived = (received: boolean) => {
+    setInstallments((prev) =>
+      prev.map((inst) => ({
+        ...inst,
+        status: received ? 'recebido' : 'pendente',
+        receivedDate: received
+          ? (inst.receivedDate || inst.dueDate || signatureDate || new Date().toISOString().slice(0, 10))
+          : undefined,
+      }))
     );
   };
 
@@ -960,58 +980,165 @@ export const DealModal: React.FC<DealModalProps> = ({
               </div>
             </div>
 
+            {/* Quick Status Batch Controls */}
+            {installments.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+                <span className="font-semibold text-slate-700 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                  Status das comissões / parcelas:
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleMarkAllReceived(true)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-md text-[11px] font-semibold transition cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                    Marcar todas como recebidas (Já recebi)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleMarkAllReceived(false)}
+                    className="px-2 py-1 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-md text-[11px] font-medium transition cursor-pointer"
+                  >
+                    Marcar pendentes
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* List of custom installments */}
             {installments.length > 0 ? (
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                {installments.map((inst, idx) => (
-                  <div 
-                    key={inst.id}
-                    className={`p-2.5 rounded-lg border text-xs grid grid-cols-12 gap-2 items-center ${
-                      inst.isBonus ? 'bg-amber-50/50 border-amber-200' : 'bg-slate-50 border-slate-200'
-                    }`}
-                  >
-                    <div className="col-span-5">
-                      <input
-                        type="text"
-                        value={inst.title}
-                        onChange={(e) => handleUpdateInstallment(idx, 'title', e.target.value)}
-                        className="w-full px-2 py-1 bg-white border border-slate-200 rounded text-xs font-medium"
-                        placeholder="Descrição da parcela"
-                      />
+              <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                {installments.map((inst, idx) => {
+                  const isPaid = inst.status === 'recebido';
+                  return (
+                    <div 
+                      key={inst.id}
+                      className={`p-3 rounded-lg border text-xs space-y-2 transition-all ${
+                        isPaid
+                          ? 'bg-emerald-50/50 border-emerald-200 shadow-2xs'
+                          : inst.isBonus
+                          ? 'bg-amber-50/50 border-amber-200'
+                          : 'bg-slate-50/80 border-slate-200'
+                      }`}
+                    >
+                      {/* Top row: Title, Due Date, Amount, Delete */}
+                      <div className="grid grid-cols-12 gap-2 items-center">
+                        <div className="col-span-12 sm:col-span-5">
+                          <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
+                            Descrição da Parcela
+                          </label>
+                          <input
+                            type="text"
+                            value={inst.title}
+                            onChange={(e) => handleUpdateInstallment(idx, 'title', e.target.value)}
+                            className="w-full px-2 py-1 bg-white border border-slate-200 rounded text-xs font-medium focus:ring-1 focus:ring-slate-900"
+                            placeholder="Descrição da parcela"
+                          />
+                        </div>
+                        <div className="col-span-6 sm:col-span-3">
+                          <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
+                            Data de Vencimento
+                          </label>
+                          <input
+                            type="date"
+                            value={inst.dueDate}
+                            onChange={(e) => handleUpdateInstallment(idx, 'dueDate', e.target.value)}
+                            className="w-full px-2 py-1 bg-white border border-slate-200 rounded text-xs focus:ring-1 focus:ring-slate-900"
+                          />
+                        </div>
+                        <div className="col-span-5 sm:col-span-3">
+                          <label className="text-[10px] font-medium text-slate-500 block mb-0.5">
+                            Valor (R$)
+                          </label>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={inst.amount}
+                            onChange={(e) => handleUpdateInstallment(idx, 'amount', parseBRLInput(e.target.value))}
+                            className="w-full px-2 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-right focus:ring-1 focus:ring-slate-900"
+                          />
+                        </div>
+                        <div className="col-span-1 text-center pt-3.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (installments.length > 1) {
+                                setInstallments(installments.filter((_, i) => i !== idx));
+                              }
+                            }}
+                            className="text-slate-400 hover:text-red-600 p-1 cursor-pointer"
+                            title="Remover parcela"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Bottom row: Status selector & Payment Date (allows past dates!) */}
+                      <div className="pt-2 border-t border-slate-200/60 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-semibold text-slate-600">
+                            Situação:
+                          </span>
+                          <div className="inline-flex rounded-md p-0.5 bg-slate-200/70">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleUpdateInstallment(idx, 'status', 'pendente');
+                                handleUpdateInstallment(idx, 'receivedDate', undefined);
+                              }}
+                              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition cursor-pointer ${
+                                !isPaid
+                                  ? 'bg-white text-slate-800 shadow-2xs'
+                                  : 'text-slate-500 hover:text-slate-800'
+                              }`}
+                            >
+                              Pendente
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleUpdateInstallment(idx, 'status', 'recebido');
+                                if (!inst.receivedDate) {
+                                  handleUpdateInstallment(
+                                    idx,
+                                    'receivedDate',
+                                    inst.dueDate || signatureDate || new Date().toISOString().slice(0, 10)
+                                  );
+                                }
+                              }}
+                              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer ${
+                                isPaid
+                                  ? 'bg-emerald-600 text-white shadow-2xs'
+                                  : 'text-slate-500 hover:text-emerald-700'
+                              }`}
+                            >
+                              <CheckCircle2 className="w-3 h-3" />
+                              Já Recebido
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* If received, show payment date picker with past date permission */}
+                        {isPaid && (
+                          <div className="flex items-center gap-1.5 bg-emerald-100/60 border border-emerald-200 px-2 py-1 rounded-md text-[11px]">
+                            <span className="font-semibold text-emerald-900 whitespace-nowrap">
+                              Data do Recebimento (data anterior permitida):
+                            </span>
+                            <input
+                              type="date"
+                              value={inst.receivedDate || inst.dueDate || signatureDate || new Date().toISOString().slice(0, 10)}
+                              onChange={(e) => handleUpdateInstallment(idx, 'receivedDate', e.target.value)}
+                              className="px-1.5 py-0.5 bg-white border border-emerald-300 rounded text-emerald-900 font-semibold text-[11px] focus:ring-1 focus:ring-emerald-600"
+                            />
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="col-span-3">
-                      <input
-                        type="date"
-                        value={inst.dueDate}
-                        onChange={(e) => handleUpdateInstallment(idx, 'dueDate', e.target.value)}
-                        className="w-full px-2 py-1 bg-white border border-slate-200 rounded text-xs"
-                      />
-                    </div>
-                    <div className="col-span-3">
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={inst.amount}
-                        onChange={(e) => handleUpdateInstallment(idx, 'amount', parseBRLInput(e.target.value))}
-                        className="w-full px-2 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-right"
-                      />
-                    </div>
-                    <div className="col-span-1 text-center">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (installments.length > 1) {
-                            setInstallments(installments.filter((_, i) => i !== idx));
-                          }
-                        }}
-                        className="text-slate-400 hover:text-red-600 p-1 cursor-pointer"
-                        title="Remover parcela"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="p-3 bg-slate-50 rounded-lg border border-dashed border-slate-200 text-center text-xs text-slate-500">

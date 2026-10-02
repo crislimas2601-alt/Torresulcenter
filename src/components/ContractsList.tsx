@@ -23,7 +23,7 @@ interface ContractsListProps {
   deals: ContractDeal[];
   onEditDeal: (deal: ContractDeal) => void;
   onDeleteDeal: (dealId: string) => void;
-  onToggleInstallmentStatus: (dealId: string, installmentId: string) => void;
+  onToggleInstallmentStatus: (dealId: string, installmentId: string, customReceivedDate?: string) => void;
   onOpenNewDeal: () => void;
 }
 
@@ -353,10 +353,19 @@ export const ContractsList: React.FC<ContractsListProps> = ({
                                   {inst.title}
                                 </span>
                               </div>
-                              <div className="text-[11px] text-slate-500 mt-0.5">
-                                Vencimento: <strong className="tabular-nums">{formatDateBR(inst.dueDate)}</strong>
+                              <div className="text-[11px] text-slate-500 mt-0.5 flex flex-wrap items-center gap-1">
+                                <span>Vencimento: <strong className="tabular-nums">{formatDateBR(inst.dueDate)}</strong></span>
                                 {inst.receivedDate && (
-                                  <span className="ml-1 text-emerald-700">• Pago em {formatDateBR(inst.receivedDate)}</span>
+                                  <span className="inline-flex items-center gap-1 text-emerald-800 bg-emerald-100/70 border border-emerald-200 px-1.5 py-0.5 rounded text-[10px] font-medium">
+                                    • Pago em:
+                                    <input
+                                      type="date"
+                                      value={inst.receivedDate}
+                                      onChange={(e) => onToggleInstallmentStatus(deal.id, inst.id, e.target.value)}
+                                      className="bg-transparent border-none text-emerald-950 font-bold p-0 cursor-pointer text-[10px] focus:outline-none"
+                                      title="Clique para alterar a data em que a comissão foi recebida"
+                                    />
+                                  </span>
                                 )}
                               </div>
                               <div className="font-bold text-sm mt-1 tabular-nums">

@@ -560,7 +560,8 @@ export const ProposalClientTVView: React.FC<ProposalClientTVViewProps> = ({
                       <CurrencyInput
                         value={valorParcelaManual}
                         onChange={setValorParcelaManual}
-                        className="w-full text-base font-bold bg-neutral-900 text-white border-neutral-700 rounded-md p-2.5"
+                        className="w-full text-base font-bold !text-white !bg-neutral-900 border-neutral-700 rounded-md p-2.5 focus:!text-white focus:!bg-neutral-900 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                        prefixClassName="text-neutral-400 font-semibold"
                         placeholder="0,00"
                       />
                       <span className="text-[10px] text-neutral-500 block mt-1">
