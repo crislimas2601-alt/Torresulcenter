@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ProposalData } from '../types';
 import { formatBRL, formatDateBR, round2 } from '../utils/formatter';
-import { calculateParcelamentoItem } from '../utils/calculator';
+import { calculateParcelamentoItem, calculateReforcoItem } from '../utils/calculator';
 import { TorresulLogo } from './TorresulLogo';
 import { CurrencyInput } from './CurrencyInput';
 import {
@@ -95,6 +95,8 @@ export const ProposalClientTVView: React.FC<ProposalClientTVViewProps> = ({
       valorParcela: parcela,
       total,
       dataInicio,
+      temCarencia: p.temCarencia,
+      mesesCarencia: p.mesesCarencia,
     };
   });
 
@@ -105,11 +107,18 @@ export const ProposalClientTVView: React.FC<ProposalClientTVViewProps> = ({
         ? formatDateBR(r.dataVencimento)
         : (r.textoVencimento || 'A combinar');
 
+    const calc = calculateReforcoItem(r);
+    // Se o juro não for diluído nas parcelas mensais, o reforço tem acréscimo de juros
+    const valorExibido = r.temJuros && !r.diluirNasMensais ? calc.valorTotalComJuros : (r.valor || 0);
+
     return {
       id: r.id || `r_${idx}`,
       title: r.title || `Reforço ${idx + 1}`,
-      valor: r.valor || 0,
+      valor: valorExibido,
       vencimento: dataVenc,
+      temJuros: Boolean(r.temJuros),
+      diluirNasMensais: Boolean(r.diluirNasMensais),
+      valorJuros: calc.valorJuros,
     };
   });
 
@@ -170,7 +179,8 @@ export const ProposalClientTVView: React.FC<ProposalClientTVViewProps> = ({
 
     if (reforcos.length > 0) {
       reforcos.forEach((r) => {
-        lines.push(`• *${r.title}:* ${formatBRL(r.valor)} (${r.vencimento})`);
+        const note = r.temJuros && r.diluirNasMensais ? ' [juros diluídos nas mensais]' : '';
+        lines.push(`• *${r.title}:* ${formatBRL(r.valor)} (${r.vencimento})${note}`);
       });
     }
 
@@ -318,7 +328,10 @@ export const ProposalClientTVView: React.FC<ProposalClientTVViewProps> = ({
                 >
                   <div>
                     <span className="font-semibold text-white block">{p.title}</span>
-                    <span className="text-xs text-neutral-400">1º Vencimento: {p.dataInicio}</span>
+                    <span className="text-xs text-neutral-400">
+                      1º Vencimento: {p.dataInicio}
+                      {p.temCarencia && p.mesesCarencia && p.mesesCarencia > 0 ? ` (Carência de ${p.mesesCarencia}m)` : ''}
+                    </span>
                   </div>
                   <div className="sm:text-right">
                     <div className="text-base sm:text-lg font-semibold text-white tabular-nums">
@@ -339,7 +352,14 @@ export const ProposalClientTVView: React.FC<ProposalClientTVViewProps> = ({
                 >
                   <div>
                     <span className="font-semibold text-white block">{r.title}</span>
-                    <span className="text-xs text-neutral-400">Vencimento: {r.vencimento}</span>
+                    <span className="text-xs text-neutral-400">
+                      Vencimento: {r.vencimento}
+                      {r.temJuros && r.diluirNasMensais && (
+                        <span className="ml-1.5 text-amber-400 font-medium">
+                          (juros diluídos nas mensais)
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <div className="text-base sm:text-lg font-semibold text-white tabular-nums sm:text-right">
                     {formatBRL(r.valor)}

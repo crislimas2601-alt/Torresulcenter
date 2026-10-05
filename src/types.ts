@@ -375,6 +375,10 @@ export interface ParcelamentoItem {
   jurosReforcosDiluido?: number;
   valorParcelaCalculada: number;
   valorTotalComJuros: number;
+  // Juros de Carência / Início Futuro
+  temCarencia?: boolean;
+  mesesCarencia?: number;
+  jurosCarenciaCalculado?: number;
 }
 
 export interface ReforcoItem {
@@ -384,6 +388,12 @@ export interface ReforcoItem {
   tipoVencimento: 'data' | 'texto';
   dataVencimento?: string;
   textoVencimento?: string;
+  // Juros nos Reforços e Diluição
+  temJuros?: boolean;
+  taxaJuros?: number; // % ao mês (ex: 1.0)
+  mesesJuros?: number; // meses até o vencimento (ex: 12)
+  valorJuros?: number; // valor calculado ou informado em R$
+  diluirNasMensais?: boolean; // Se true, o juro é diluído nas parcelas mensais em vez de somado ao reforço
 }
 
 export interface AvalistaData {
@@ -444,6 +454,8 @@ export interface ProposalTotals {
   totalEntradaComJuros: number;
   totalParcelamentosSemJuros: number;
   totalReforcos: number;
+  totalReforcosComJuros?: number;
+  totalJurosReforcosDiluidos?: number;
   totalNominal: number;
   totalNegociacao: number;
   diferencaImovel: number;

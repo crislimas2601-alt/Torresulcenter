@@ -2,7 +2,7 @@ import React from 'react';
 import { ParcelamentoItem } from '../types';
 import { CurrencyInput } from './CurrencyInput';
 import { formatBRL, toInputDateFormat } from '../utils/formatter';
-import { calculateParcelamentoItem, round2 } from '../utils/calculator';
+import { calculateParcelamentoItem, calculateGraceMonths, round2 } from '../utils/calculator';
 import {
   Plus,
   Trash2,
@@ -10,18 +10,23 @@ import {
   Percent,
   Calculator,
   Layers,
+  Clock,
 } from 'lucide-react';
 
 interface ParcelamentoSectionProps {
   parcelamentos: ParcelamentoItem[];
   onChange: (items: ParcelamentoItem[]) => void;
   saldoRestanteEntrada?: number;
+  dataBaseProposta?: string;
+  totalJurosReforcosDiluidos?: number;
 }
 
 export const ParcelamentoSection: React.FC<ParcelamentoSectionProps> = ({
   parcelamentos,
   onChange,
   saldoRestanteEntrada = 0,
+  dataBaseProposta,
+  totalJurosReforcosDiluidos = 0,
 }) => {
   const handleAddItem = () => {
     const nextIndex = parcelamentos.length + 1;
@@ -32,10 +37,13 @@ export const ParcelamentoSection: React.FC<ParcelamentoSectionProps> = ({
       jurosAoMes: 1.0,
       quantidadeParcelas: 12,
       dataVencimento: new Date().toISOString().split('T')[0],
-      tipoCalculo: 'simples',
+      tipoCalculo: 'price',
       temJurosDiluidos: false,
       jurosAdimplenciaDiluido: 0,
       jurosReforcosDiluido: 0,
+      temCarencia: false,
+      mesesCarencia: 0,
+      jurosCarenciaCalculado: 0,
       valorParcelaCalculada: 0,
       valorTotalComJuros: 0,
     };
@@ -56,6 +64,7 @@ export const ParcelamentoSection: React.FC<ParcelamentoSectionProps> = ({
       ...merged,
       valorParcelaCalculada: calc.valorParcelaCalculada,
       valorTotalComJuros: calc.valorTotalComJuros,
+      jurosCarenciaCalculado: calc.jurosCarenciaCalculado,
     };
     onChange(updated);
   };
@@ -101,7 +110,16 @@ export const ParcelamentoSection: React.FC<ParcelamentoSectionProps> = ({
       ) : (
         <div className="space-y-4">
           {parcelamentos.map((item, idx) => {
-            const calculated = calculateParcelamentoItem(item);
+            const autoGraceMonths = calculateGraceMonths(item.dataVencimento, dataBaseProposta);
+            const effectiveGraceMonths = item.temCarencia
+              ? (autoGraceMonths > 0 ? autoGraceMonths : (item.mesesCarencia || 1))
+              : 0;
+
+            const itemToCalculate = {
+              ...item,
+              mesesCarencia: effectiveGraceMonths,
+            };
+            const calculated = calculateParcelamentoItem(itemToCalculate);
             const jurosGerados = round2(
               calculated.valorTotalComJuros - (item.totalSemJuros || 0)
             );
@@ -130,6 +148,27 @@ export const ParcelamentoSection: React.FC<ParcelamentoSectionProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextState = !item.temCarencia;
+                        const autoGrace = calculateGraceMonths(item.dataVencimento, dataBaseProposta);
+                        handleUpdateItem(idx, {
+                          temCarencia: nextState,
+                          mesesCarencia: nextState ? (autoGrace > 0 ? autoGrace : 1) : 0,
+                        });
+                      }}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg font-medium transition-colors cursor-pointer ${
+                        item.temCarencia
+                          ? 'bg-blue-100 text-blue-900 border border-blue-300'
+                          : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                      }`}
+                      title="Calcular juros futuros de forma automática com base no 1º vencimento"
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      {item.temCarencia ? `Juros Futuros (${effectiveGraceMonths}m)` : '+ Juros Futuros'}
+                    </button>
+
                     <button
                       type="button"
                       onClick={() =>
@@ -227,7 +266,7 @@ export const ParcelamentoSection: React.FC<ParcelamentoSectionProps> = ({
                     </div>
                   </div>
 
-                  {/* 1º Vencimento */}
+                  {/* 1º Vencimento + Checkbox Ativar Juros Futuros */}
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1 flex items-center gap-1">
                       <Calendar className="w-3 h-3 text-slate-400" />
@@ -236,11 +275,41 @@ export const ParcelamentoSection: React.FC<ParcelamentoSectionProps> = ({
                     <input
                       type="date"
                       value={toInputDateFormat(item.dataVencimento)}
-                      onChange={(e) =>
-                        handleUpdateItem(idx, { dataVencimento: e.target.value })
-                      }
+                      onChange={(e) => {
+                        const newDate = e.target.value;
+                        const autoGrace = calculateGraceMonths(newDate, dataBaseProposta);
+                        handleUpdateItem(idx, {
+                          dataVencimento: newDate,
+                          mesesCarencia: item.temCarencia ? (autoGrace > 0 ? autoGrace : 1) : 0,
+                        });
+                      }}
                       className="w-full px-3 py-2 text-sm font-medium text-slate-800 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
+
+                    {/* Opção direta: Ativar juros futuros calculados automaticamente */}
+                    <label className="mt-2 flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(item.temCarencia)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          const autoGrace = calculateGraceMonths(item.dataVencimento, dataBaseProposta);
+                          handleUpdateItem(idx, {
+                            temCarencia: checked,
+                            mesesCarencia: checked ? (autoGrace > 0 ? autoGrace : 1) : 0,
+                          });
+                        }}
+                        className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
+                      />
+                      <span className={`text-xs ${item.temCarencia ? 'font-bold text-blue-900' : 'text-slate-600'}`}>
+                        Ativar juros futuros
+                        {item.temCarencia && (
+                          <span className="ml-1 text-[11px] font-semibold text-blue-700">
+                            ({effectiveGraceMonths > 0 ? `${effectiveGraceMonths}m auto` : '1m'})
+                          </span>
+                        )}
+                      </span>
+                    </label>
                   </div>
                 </div>
 
@@ -274,9 +343,23 @@ export const ParcelamentoSection: React.FC<ParcelamentoSectionProps> = ({
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-medium text-amber-900 mb-1">
-                          Juros dos Reforços Diluídos
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[11px] font-medium text-amber-900">
+                            Juros dos Reforços Diluídos
+                          </label>
+                          {totalJurosReforcosDiluidos > 0 && item.jurosReforcosDiluido !== totalJurosReforcosDiluidos && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleUpdateItem(idx, { jurosReforcosDiluido: totalJurosReforcosDiluidos })
+                              }
+                              className="text-[10px] text-amber-800 underline font-semibold hover:text-amber-950 cursor-pointer"
+                              title="Puxar o valor calculado dos reforços"
+                            >
+                              Aplicar {formatBRL(totalJurosReforcosDiluidos)}
+                            </button>
+                          )}
+                        </div>
                         <CurrencyInput
                           id={`p_juros_reforco_${idx}`}
                           value={item.jurosReforcosDiluido || 0}
@@ -286,6 +369,11 @@ export const ParcelamentoSection: React.FC<ParcelamentoSectionProps> = ({
                           placeholder="Ex: 860,83"
                           className="bg-white border-amber-300"
                         />
+                        {totalJurosReforcosDiluidos > 0 && item.jurosReforcosDiluido === totalJurosReforcosDiluidos && (
+                          <span className="text-[10px] text-emerald-700 block mt-0.5 font-medium">
+                            ✓ Sincronizado com os reforços ({formatBRL(totalJurosReforcosDiluidos)})
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -329,9 +417,15 @@ export const ParcelamentoSection: React.FC<ParcelamentoSectionProps> = ({
                       </strong>
                     </div>
 
+                    {calculated.jurosCarenciaCalculado > 0.009 && (
+                      <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-800 text-[11px] font-semibold border border-blue-200">
+                        +{formatBRL(calculated.jurosCarenciaCalculado)} juros futuros ({item.mesesCarencia || 1}m)
+                      </span>
+                    )}
+
                     {jurosGerados > 0.009 && (
                       <span className="px-1.5 py-0.5 rounded bg-orange-50 text-orange-800 text-[11px] font-semibold border border-orange-200">
-                        +{formatBRL(jurosGerados)} juros
+                        +{formatBRL(jurosGerados)} juros total
                       </span>
                     )}
                   </div>

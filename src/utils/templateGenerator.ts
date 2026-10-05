@@ -1,6 +1,6 @@
 import { ProposalData } from '../types';
 import { formatBRL, formatDateBR } from './formatter';
-import { calculateProposalTotals, round2 } from './calculator';
+import { calculateProposalTotals, calculateReforcoItem, round2 } from './calculator';
 
 /**
  * Generates the standardized contract draft text for Torresul Imobiliária Back Office,
@@ -106,16 +106,24 @@ export function generateContractText(proposal: ProposalData): string {
   if (validReforcos.length > 0 && totals.totalReforcos > 0) {
     lines.push(`Reforços (parcelas anuais): ${formatBRL(totals.totalReforcos)}`);
     lines.push(`Valor nominal: ${formatBRL(totals.totalReforcos)}`);
-    lines.push(`Valor com juros: ${formatBRL(totals.totalReforcos)}`);
+    lines.push(`Valor com juros: ${formatBRL(totals.totalReforcosComJuros || totals.totalReforcos)}`);
     validReforcos.forEach((r, idx) => {
       const rTitle = r.title?.trim() || `Reforço ${idx + 1}`;
+      const calc = calculateReforcoItem(r);
       const vencimento =
         r.tipoVencimento === 'texto' && r.textoVencimento
           ? r.textoVencimento
           : r.dataVencimento
           ? formatDateBR(r.dataVencimento)
           : 'A definir';
-      lines.push(`${rTitle}: ${formatBRL(r.valor)} vencimento: ${vencimento}`);
+
+      if (r.temJuros && r.diluirNasMensais) {
+        lines.push(`${rTitle}: ${formatBRL(r.valor)} vencimento: ${vencimento} (juros de ${formatBRL(calc.valorJuros)} diluídos nas mensais)`);
+      } else if (r.temJuros) {
+        lines.push(`${rTitle}: ${formatBRL(calc.valorTotalComJuros)} vencimento: ${vencimento} (nominal ${formatBRL(r.valor)} + ${formatBRL(calc.valorJuros)} juros)`);
+      } else {
+        lines.push(`${rTitle}: ${formatBRL(r.valor)} vencimento: ${vencimento}`);
+      }
     });
     lines.push('');
   }

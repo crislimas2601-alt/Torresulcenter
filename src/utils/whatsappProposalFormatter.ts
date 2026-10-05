@@ -1,5 +1,5 @@
 import { ProposalData } from '../types';
-import { calculateProposalTotals } from './calculator';
+import { calculateProposalTotals, calculateReforcoItem } from './calculator';
 import { formatBRL, formatDateBR } from './formatter';
 
 /**
@@ -59,6 +59,8 @@ export function formatClientProposalSummaryForWhatsApp(
     lines.push('');
     lines.push('Reforços:');
     validReforcos.forEach((r, idx) => {
+      const calc = calculateReforcoItem(r);
+      const valorFinal = r.temJuros && !r.diluirNasMensais ? calc.valorTotalComJuros : (r.valor || 0);
       const vencimento =
         r.tipoVencimento === 'texto' && r.textoVencimento
           ? r.textoVencimento
@@ -66,7 +68,8 @@ export function formatClientProposalSummaryForWhatsApp(
           ? formatDateBR(r.dataVencimento)
           : '';
       const vctoStr = vencimento ? ` (${vencimento})` : '';
-      lines.push(`• Reforço ${idx + 1}: ${formatBRL(r.valor)}${vctoStr}`);
+      const jurosNote = r.temJuros && r.diluirNasMensais ? ' [juros diluídos nas mensais]' : '';
+      lines.push(`• Reforço ${idx + 1}: ${formatBRL(valorFinal)}${vctoStr}${jurosNote}`);
     });
   }
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { safeStorage } from '../utils/safeStorage';
 import { ProposalData, ParcelamentoItem, ReforcoItem } from '../types';
-import { calculateProposalTotals, round2 } from '../utils/calculator';
+import { calculateProposalTotals, calculateReforcoItem, round2 } from '../utils/calculator';
 import { formatBRL, formatDateBR } from '../utils/formatter';
 import { generateContractText } from '../utils/templateGenerator';
 import { CurrencyInput } from './CurrencyInput';
@@ -142,6 +142,9 @@ export function sanitizeProposalData(raw: any): ProposalData {
       jurosReforcosDiluido: Number(p?.jurosReforcosDiluido) || 0,
       valorParcelaCalculada: Number(p?.valorParcelaCalculada) || 0,
       valorTotalComJuros: Number(p?.valorTotalComJuros) || 0,
+      temCarencia: Boolean(p?.temCarencia),
+      mesesCarencia: Math.min(60, Math.max(1, Number(p?.mesesCarencia) || 1)),
+      jurosCarenciaCalculado: Number(p?.jurosCarenciaCalculado) || 0,
     };
   });
 
@@ -153,6 +156,11 @@ export function sanitizeProposalData(raw: any): ProposalData {
     tipoVencimento: (r?.tipoVencimento === 'texto' ? 'texto' : 'data') as 'data' | 'texto',
     dataVencimento: String(r?.dataVencimento || ''),
     textoVencimento: String(r?.textoVencimento || ''),
+    temJuros: Boolean(r?.temJuros),
+    taxaJuros: r?.taxaJuros !== undefined ? Number(r?.taxaJuros) : 1.0,
+    mesesJuros: r?.mesesJuros !== undefined ? Math.max(1, Number(r?.mesesJuros)) : 12,
+    valorJuros: Number(r?.valorJuros) || 0,
+    diluirNasMensais: Boolean(r?.diluirNasMensais),
   }));
 
   const cleanAvalista = {
@@ -282,6 +290,36 @@ export const TorresulProposalCalculator: React.FC = () => {
 
   const handleUpdate = (updates: Partial<ProposalData>) => {
     setProposal((prev) => ({ ...prev, ...updates }));
+  };
+
+  const handleUpdateReforcos = (newReforcos: ReforcoItem[]) => {
+    // Calcula o total de juros dos reforços marcados para diluição
+    const totalDiluido = newReforcos.reduce((acc, r) => {
+      if (r.temJuros && r.diluirNasMensais) {
+        const calc = calculateReforcoItem(r);
+        return acc + calc.valorJuros;
+      }
+      return acc;
+    }, 0);
+
+    let updatedParcelamentos = proposal.parcelamentos;
+    if (proposal.parcelamentos && proposal.parcelamentos.length > 0) {
+      updatedParcelamentos = proposal.parcelamentos.map((p, idx) => {
+        if (idx === 0) {
+          return {
+            ...p,
+            temJurosDiluidos: totalDiluido > 0 ? true : p.temJurosDiluidos,
+            jurosReforcosDiluido: totalDiluido,
+          };
+        }
+        return p;
+      });
+    }
+
+    handleUpdate({
+      reforcos: newReforcos,
+      parcelamentos: updatedParcelamentos,
+    });
   };
 
   // Balance Entradas: allocates the difference (diferencaImovel) to the first parcelamento item or adds one
@@ -817,12 +855,14 @@ export const TorresulProposalCalculator: React.FC = () => {
             parcelamentos={proposal.parcelamentos || []}
             onChange={(items) => handleUpdate({ parcelamentos: items })}
             saldoRestanteEntrada={totals.diferencaImovel > 0 ? totals.diferencaImovel : 0}
+            dataBaseProposta={proposal.dataAto || proposal.createdAt?.slice(0, 10)}
+            totalJurosReforcosDiluidos={totals.totalJurosReforcosDiluidos || 0}
           />
 
           {/* 3. Reforços (Parcelamentos Anuais / Balões) */}
           <ReforcosSection
             reforcos={proposal.reforcos || []}
-            onChange={(items) => handleUpdate({ reforcos: items })}
+            onChange={handleUpdateReforcos}
           />
 
           {/* 4, 5 & 6: Agente Financeiro, Avalista, Promissória, Móveis e Comissão */}

@@ -1,4 +1,4 @@
-import { ProposalData, ProposalTotals, ParcelamentoItem } from '../types';
+import { ProposalData, ProposalTotals, ParcelamentoItem, ReforcoItem } from '../types';
 
 /**
   * Safely round number to 2 decimal places to avoid floating point precision issues
@@ -9,17 +9,105 @@ export function round2(val: number): number {
 }
 
 /**
-  * Calculates an individual installment series with Price, Simple, or 0% interest,
-  * including optional diluted interest (adimplência and reforços).
-  */
+ * Calculates estimated grace period months between base date and first installment due date.
+ * Assumes a normal first installment occurs in ~30 days (1 month).
+ * Cap at 36 months to prevent bogus dates.
+ */
+export function calculateGraceMonths(dueDateStr?: string, baseDateStr?: string): number {
+  if (!dueDateStr) return 0;
+  try {
+    const cleanDue = dueDateStr.trim().slice(0, 10);
+    if (!cleanDue || cleanDue.length < 10) return 0;
+    const dueYear = parseInt(cleanDue.slice(0, 4), 10);
+    if (isNaN(dueYear) || dueYear < 2020 || dueYear > 2060) return 0;
+
+    let cleanBase = (baseDateStr && baseDateStr.trim().length >= 10) ? baseDateStr.trim().slice(0, 10) : '';
+    const nowIso = new Date().toISOString().slice(0, 10);
+    if (!cleanBase || parseInt(cleanBase.slice(0, 4), 10) < 2020) {
+      cleanBase = nowIso;
+    }
+
+    const due = new Date(cleanDue + 'T12:00:00');
+    const base = new Date(cleanBase + 'T12:00:00');
+    if (isNaN(due.getTime()) || isNaN(base.getTime())) return 0;
+
+    const yearDiff = due.getFullYear() - base.getFullYear();
+    const monthDiff = due.getMonth() - base.getMonth();
+    const dayDiff = due.getDate() - base.getDate();
+
+    let totalMonths = yearDiff * 12 + monthDiff;
+    if (dayDiff > 15) {
+      totalMonths += 1;
+    } else if (dayDiff < -15) {
+      totalMonths -= 1;
+    }
+
+    // Normal first installment happens in 1 month (approx. 30 days)
+    const graceMonths = totalMonths - 1;
+    if (graceMonths <= 0) return 0;
+    // Cap at 60 months to prevent bogus dates/calculations
+    return Math.min(60, graceMonths);
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Calculates interest on an individual reforço (balloon payment).
+ * Can be simple interest accumulated over months or custom interest amount.
+ */
+export function calculateReforcoItem(r: ReforcoItem): {
+  valorJuros: number;
+  valorTotalComJuros: number;
+} {
+  const nominal = Math.max(0, r.valor || 0);
+  if (!r.temJuros || nominal <= 0) {
+    return { valorJuros: 0, valorTotalComJuros: nominal };
+  }
+  const taxaMes = (r.taxaJuros !== undefined ? r.taxaJuros : 1.0) / 100;
+  const meses = Math.max(1, r.mesesJuros !== undefined ? r.mesesJuros : 12);
+
+  // If user provided a specific valorJuros manually, use it; otherwise compute simple interest
+  let juros = r.valorJuros !== undefined && r.valorJuros > 0 && r.taxaJuros === undefined
+    ? round2(r.valorJuros)
+    : round2(nominal * taxaMes * meses);
+
+  return {
+    valorJuros: juros,
+    valorTotalComJuros: round2(nominal + juros),
+  };
+}
+
+/**
+ * Calculates an individual installment series with Price, Simple, or 0% interest,
+ * including optional grace period interest (carência) and diluted interest (adimplência and reforços).
+ */
 export function calculateParcelamentoItem(p: ParcelamentoItem): {
   valorParcelaCalculada: number;
   valorTotalComJuros: number;
+  jurosCarenciaCalculado: number;
+  capitalComCarencia: number;
 } {
-  const capital = Math.max(0, p.totalSemJuros || 0);
+  const rawCapital = Math.max(0, p.totalSemJuros || 0);
   const n = Math.max(1, p.quantidadeParcelas || 1);
   const rateMonth = (p.jurosAoMes || 0) / 100;
   const tipo = p.tipoCalculo || 'price';
+
+  // Juros de Carência / Início Futuro
+  let jurosCarenciaCalculado = 0;
+  let capital = rawCapital;
+  const mesesCarencia = Math.max(0, p.mesesCarencia || 0);
+
+  if (p.temCarencia && mesesCarencia > 0 && rateMonth > 0 && rawCapital > 0) {
+    if (tipo === 'simples') {
+      jurosCarenciaCalculado = round2(rawCapital * rateMonth * mesesCarencia);
+      capital = round2(rawCapital + jurosCarenciaCalculado);
+    } else if (tipo === 'price') {
+      // Juros compostos de carência sobre o saldo inicial (regra padrão da imobiliária / construtora)
+      capital = round2(rawCapital * Math.pow(1 + rateMonth, mesesCarencia));
+      jurosCarenciaCalculado = round2(capital - rawCapital);
+    }
+  }
 
   let baseInstallment = 0;
   let baseTotalWithInterest = 0;
@@ -56,6 +144,8 @@ export function calculateParcelamentoItem(p: ParcelamentoItem): {
   return {
     valorParcelaCalculada: finalInstallment,
     valorTotalComJuros: finalTotalWithInterest,
+    jurosCarenciaCalculado,
+    capitalComCarencia: capital,
   };
 }
 
@@ -89,18 +179,22 @@ export function calculateProposalTotals(proposal: ProposalData): ProposalTotals 
   }
 
   // Recalculate each parcelamento item
+  const baseDateStr = proposal.dataAto || proposal.createdAt?.slice(0, 10);
   const parcelamentosRecalculados: ParcelamentoItem[] = (proposal.parcelamentos || []).map((p) => {
-    const calc = calculateParcelamentoItem(p);
-    let extraJurosAdimplencia = 0;
-    
-    // Se o juros da adimplência for diluído nos parcelamentos, dividimos proporcionalmente ou apenas adicionamos?
-    // Para simplificar, se o usuário escolher 'parcelamentos', ele deve preencher 'jurosAdimplenciaDiluido' manualmente na parcela.
-    // Mas se quisermos automatizar:
+    const autoMonths = p.temCarencia
+      ? (calculateGraceMonths(p.dataVencimento, baseDateStr) || p.mesesCarencia || 1)
+      : 0;
+    const itemToCalc: ParcelamentoItem = {
+      ...p,
+      mesesCarencia: autoMonths,
+    };
+    const calc = calculateParcelamentoItem(itemToCalc);
     
     return {
-      ...p,
+      ...itemToCalc,
       valorParcelaCalculada: calc.valorParcelaCalculada,
       valorTotalComJuros: calc.valorTotalComJuros,
+      jurosCarenciaCalculado: calc.jurosCarenciaCalculado,
     };
   });
 
@@ -112,12 +206,29 @@ export function calculateProposalTotals(proposal: ProposalData): ProposalTotals 
     parcelamentosRecalculados.reduce((acc, cur) => acc + (cur.valorTotalComJuros || 0), 0)
   );
 
-  const totalReforcos = round2(
+  // Reforços: nominal vs com juros (somente se não diluídos nas parcelas mensais)
+  const totalReforcosSemJuros = round2(
     (proposal.reforcos || []).reduce((acc, cur) => acc + (cur.valor || 0), 0)
   );
 
-  const totalEntradaSemJuros = round2(ato + totalParcelamentosSemJuros + totalReforcos);
-  const totalEntradaComJuros = round2(ato + totalParcelamentosComJuros + totalReforcos);
+  let totalJurosReforcosDiluidos = 0;
+  const totalReforcosComJuros = round2(
+    (proposal.reforcos || []).reduce((acc, cur) => {
+      const calc = calculateReforcoItem(cur);
+      if (cur.temJuros && cur.diluirNasMensais) {
+        totalJurosReforcosDiluidos += calc.valorJuros;
+        // Juro vai para as mensais, logo o saldo deste reforço permanece o nominal
+        return acc + (cur.valor || 0);
+      }
+      return acc + (cur.temJuros ? calc.valorTotalComJuros : (cur.valor || 0));
+    }, 0)
+  );
+  totalJurosReforcosDiluidos = round2(totalJurosReforcosDiluidos);
+
+  const totalReforcos = totalReforcosSemJuros;
+
+  const totalEntradaSemJuros = round2(ato + totalParcelamentosSemJuros + totalReforcosSemJuros);
+  const totalEntradaComJuros = round2(ato + totalParcelamentosComJuros + totalReforcosComJuros);
 
   // Se o juros da adimplência for no total:
   const jurosAdimplenciaNoTotal = proposal.tipoJurosAdimplencia === 'total' ? jurosAdimplencia : 0;
@@ -137,6 +248,8 @@ export function calculateProposalTotals(proposal: ProposalData): ProposalTotals 
     totalEntradaComJuros,
     totalParcelamentosSemJuros,
     totalReforcos,
+    totalReforcosComJuros,
+    totalJurosReforcosDiluidos,
     totalNominal,
     totalNegociacao,
     diferencaImovel,
